@@ -55,10 +55,14 @@
                 $sql = "select * from sppg where id='$idx'"; // informasi sppg
                 $sqlMenu = "select * from menu_sppg where sppg_id = '$idx' order by hari ASC"; // menu sppg
                 $sqlSek = "select * from sekolah where sppg_id = '$idx'"; // sekolah penerima
+                $sqlIbu = "select * from ibu_hamil where sppg_id = '$idx'";
+                $sqlBalita = "select * from balita where sppg_id = '$idx'";
                 $sqlRat = "select * from sppg_rating where sppg_id = '$idx'"; //komentar & rating
 
                 $dataMenu = $db->query($sqlMenu);
                 $dataSekolah = $db->query($sqlSek);
+                $dataIbu = $db->query($sqlIbu);
+                $dataBalita = $db->query($sqlBalita);
                 $dataRating = $db->query($sqlRat);
                 $data = $db->query($sql);
                 foreach ($data as $d) {
@@ -129,10 +133,18 @@
                   <?php } ?>
                 </table>
                 <!-- sekolah -->
-                <h4>Daftar Sekolah</h4>
-                <a href='./?p=tambah_sekolah&id=<?= $idx ?>'>
-                  <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Sekolah</button>
-                </a>
+                <h4>Daftar Penerima MBG</h4>
+                <div class="d-flex gap-2">
+                  <a href='./?p=tambah_sekolah&id=<?= $idx ?>'>
+                    <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Sekolah</button>
+                  </a>
+                  <a href='./?p=tambah_ibu_hamil&id=<?= $idx ?>'>
+                    <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Ibu hamil</button>
+                  </a>
+                  <a href='./?p=tambah_balita&id=<?= $idx ?>'>
+                    <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Balita</button>
+                  </a>
+                </div>
                 <table class="table table-striped table-bordered table-hover">
                   <tr>
                     <th>No</th>
@@ -159,6 +171,46 @@
                     }
                   } else {
                     echo "<p>Tidak ada sekolah pada SPPG ini.</p>";
+                  }
+                  ?>
+                </table>
+
+                <!-- Klaster 3B -->
+                <table class="table table-striped table-bordered table-hover">
+                  <tr>
+                    <th>No</th>
+                    <th>Nama </th>
+                    <th>Klaster</th>
+                    <th>Alamat</th>
+                    <th>Aksi</th>
+                  </tr>
+                  <?php
+                  $no = 0;
+                  if ($dataIbu->num_rows > 0) {
+                    foreach ($dataIbu as $di) {
+                      $no++;
+                        if ($di['klaster'] == 1) {
+                          $klaster = "Ibu Hamil";
+                        } elseif ($di['klaster'] == 2) {
+                          $klaster = "Ibu Menyusui";
+                        } elseif ($di['klaster'] == 3) {
+                          $klaster = "Balita Non PAUD";
+                        } else {
+                          $klaster = "klaster Tidak Diketahui";
+                        }
+                      echo "<tr>
+                                <td>$no</td>
+                                <td>{$di['nama_ibu']}</td>
+                                <td>$klaster</td>
+                                <td>{$di['alamat']}</td>
+                                <td>
+                                  <a href='./?p=edit_ibu_hamil&id=$di[id]&sppg_id=$d[id]'><i class='bi bi-pencil btn btn-warning'></i></a>
+                                  <a href='./?p=hapus_ibu_hamil&id=$di[id]&sppg_id=$d[id]'><i class='bi bi-trash3 btn btn-danger'></i></a>
+                                </td>
+                              </tr>";
+                    }
+                  } else {
+                    echo "<p>Tidak ada ibu hamil pada SPPG ini.</p>";
                   }
                   ?>
                 </table>

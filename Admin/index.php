@@ -318,7 +318,7 @@ if($_SESSION['isLogin']==false or $_SESSION['level']!="admin"){
         <!--begin::Copyright-->
         <strong>
           Copyright &copy; 2014-2025&nbsp;
-          <a href="https://adminlte.io" class="text-decoration-none">SIMBG</a>.
+          <a href="https://adminlte.io" class="text-decoration-none">MBG-KU</a>.
         </strong>
         All rights reserved.
         <!--end::Copyright-->

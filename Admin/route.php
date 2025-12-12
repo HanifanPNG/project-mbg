@@ -39,14 +39,14 @@ switch ($p) {
         require_once "hapus_sekolah.php";
         break;  
 
-    case 'tambah_ibu-hamil' :
-        require_once "tambah_ibu-hamil.php";
+    case 'tambah_ibu_hamil' :
+        require_once "tambah_ibu_hamil.php";
         break;   
-    case 'edit_ibu-hamil' :
-        require_once "edit_ibu-hamil.php";
+    case 'edit_ibu_hamil' :
+        require_once "edit_ibu_hamil.php";
         break;   
-    case 'hapus_ibu-hamil' :
-        require_once "hapus_ibu-hamil.php";
+    case 'hapus_ibu_hamil' :
+        require_once "hapus_ibu_hamil.php";
         break;   
         
         

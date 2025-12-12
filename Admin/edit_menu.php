@@ -82,7 +82,7 @@
                             move_uploaded_file($_FILES['image']['tmp_name'], "uploads/" . $image);
                           } else {
                             $image = $d['image'];
-                          }
+                          } 
 
                           $sql = "update menu_sppg set hari='$hari', nama_menu='$nama_menu', deskripsi_menu='$deskripsi_menu', image='$image' WHERE id='$idx'";
                           $hasil = $db->query($sql);
@@ -111,7 +111,7 @@
                             </tr>
                             <tr>
                               <td>Deskripsi Menu</td>
-                              <td><textarea type='text' name='deskripsi_menu' class="form-control" value='<?= $d['deskripsi_menu'] ?>'></textarea></td>
+                              <td><textarea type='text' name='deskripsi_menu' class="form-control" value='<?= $d['deskripsi_menu'] ?>'>Kandungan Gizi: </textarea></td>
                             </tr>
                             <tr>
                               <td>Foto Menu</td>

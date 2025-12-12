@@ -58,11 +58,11 @@
                                 $sppg_id = $_GET['id'];
                                 if ($_POST['simpan']) {
                                     $nama_ibu = $_POST['nama_ibu'];
-                                    $usia_kehamilan = $_POST['usia_kehamilan'];
+                                    $klaster = $_POST['klaster'];
                                     $alamat = $_POST['alamat'];
 
                                     require_once "../config.php";
-                                    $sql = "insert into ibu_hamil set sppg_id='$sppg_id', nama_ibu='$nama_ibu', usia_kehamilan='$usia_kehamilan' ,alamat='$alamat'";
+                                    $sql = "insert into ibu_hamil set sppg_id='$sppg_id', nama_ibu='$nama_ibu', klaster='$klaster' ,alamat='$alamat'";
                                     $a = $db->query($sql);
                                     if ($a) {
                                         echo "<div class='alert alert-success'>Berhasil Ditambahkan✅ <br></div>";
@@ -77,12 +77,12 @@
                                             <td><input type="text" name="nama_ibu" class="form-control" value="<?= $nama_ibu ?>"></td>
                                         </tr>
                                         <tr>
-                                            <td>Usia Kehamilan</td>
-                                            <td><select name="usia_kehamilan" class="form-control">
+                                            <td>Klaster</td>
+                                            <td><select name="klaster" class="form-control">
                                                     <option></option>
-                                                    <option value="trimester_pertama">Trimester 1 (0–12 minggu)</option>
-                                                    <option value="trimester_pertama">Trimester 2 (13-26 minggu)</option>
-                                                    <option value="trimester_pertama">Trimester 3 (27-40 minggu)</option>
+                                                    <option value="1"<?php if($klaster == "1") echo "selected"?>>Ibu Hamil</option>
+                                                    <option value="2"<?php if($klaster == "2") echo "selected"?>>Ibu Menyusui</option>
+                                                    <option value="3"<?php if($klaster == "3") echo "selected"?>>Balita Non PAUD</option>
                                                 </select></td>
                                         </tr>
                                         <tr>
