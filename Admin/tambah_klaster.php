@@ -73,7 +73,7 @@
                                 <form action="#" method="post">
                                     <table>
                                         <tr>
-                                            <td>Nama Ibu hamil</td>
+                                            <td>Nama</td>
                                             <td><input type="text" name="nama_ibu" class="form-control" value="<?= $nama_ibu ?>"></td>
                                         </tr>
                                         <tr>

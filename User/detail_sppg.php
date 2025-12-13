@@ -1,497 +1,494 @@
 <?php
-
-/*******************************************************
- * MBG Sistem — Detail SPPG (AdminLTE)
- * File: pages/detail_sppg.php
- * Requirements:
- * - Session keys: $_SESSION['isLogin'] true/false (optional gating)
- * - DB config: require_once "../config.php"; exposes $db (mysqli)
- * - Tables:
- * sppg(id, nama_sppg, alamat, kota, jam_buka, jam_tutup, waktu)
- * sekolah(id, sppg_id, nama_sekolah, jenjang, alamat)
- * menu_sppg(id, sppg_id, hari, nama_menu, image)
- * sppg_rating(id, sppg_id, nama, komentar, rating, tanggal DEFAULT CURRENT_TIMESTAMP)
- *******************************************************/
 session_start();
 
-// Gate (if you want to require login; otherwise you can comment this out)
-if (isset($_SESSION['isLogin']) && $_SESSION['isLogin'] === false) {
-    header("Location: ../logout.php");
+require_once "../config.php";
+if (isset($_SESSION['success'])) {
+    // Menggunakan kelas alert modern Tailwind untuk pesan sukses
+    echo "<script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'fixed top-0 left-1/2 transform -translate-x-1/2 mt-4 z-50 p-4 rounded-lg bg-green-100 border border-green-400 text-green-700 shadow-xl transition-opacity duration-300';
+                alertDiv.innerHTML = '<span class=\"font-medium\">Sukses!</span> {$_SESSION['success']}';
+                document.body.prepend(alertDiv);
+                setTimeout(() => {
+                    alertDiv.classList.add('opacity-0');
+                    setTimeout(() => alertDiv.remove(), 300);
+                }, 3000); // Hilangkan setelah 3 detik
+            });
+          </script>";
+    unset($_SESSION['success']); //hapus sesion
+}
+
+$idx = $_GET['id'];
+$sql = "select * from sppg where id='$idx'";
+$data = $db->query($sql);
+
+$sppg_id = $_GET['id'];
+if (isset($_POST["submit"])) {
+    $nama = $_POST["nama"];
+    $komentar = $_POST["komentar"];
+    $rating = $_POST["rating"];
+
+    $sql = "insert into sppg_rating set sppg_id='$sppg_id', nama='$nama', komentar='$komentar', rating='$rating'";
+    $hasil = $db->query($sql);
+
+    $_SESSION['success'] = "Komentar berhasil ditambahkan!";
+    header("Location: detail_sppg.php?id=$sppg_id");
     exit;
 }
-
-require_once "../config.php"; // mysqli $db
-
-function h($s)
-{
-    return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
-}
-function csrfToken()
-{
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-function checkCsrf($token)
-{
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token ?? '');
-}
-
-// Get SPPG id
-$id = (int)($_GET['id'] ?? 0);
-if ($id <= 0) {
-    http_response_code(400);
-    die("SPPG tidak valid.");
-}
-
-// Handle add rating (POST to same page)
-$errors = [];
-$success = "";
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_rating') {
-    $token = $_POST['csrf_token'] ?? '';
-    $nama = trim($_POST['nama'] ?? ($_SESSION['username'] ?? 'Pengguna'));
-    $komentar = trim($_POST['komentar'] ?? '');
-    $rating = (int)($_POST['rating'] ?? 0);
-    $sppg_id = (int)($_POST['sppg_id'] ?? 0);
-
-    if (!checkCsrf($token)) {
-        $errors[] = "CSRF token tidak valid. Muat ulang halaman dan coba lagi.";
-    }
-    if ($sppg_id !== $id) {
-        $errors[] = "SPPG tidak sesuai.";
-    }
-    if ($nama === "" || strlen($nama) < 2) {
-        $errors[] = "Nama minimal 2 karakter.";
-    }
-    if ($komentar === "" || strlen($komentar) < 3) {
-        $errors[] = "Komentar minimal 3 karakter.";
-    }
-    if ($rating < 1 || $rating > 5) {
-        $errors[] = "Rating harus antara 1-5.";
-    }
-
-    if (empty($errors)) {
-        $stmt = $db->prepare("INSERT INTO sppg_rating (sppg_id, nama, komentar, rating) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("issi", $sppg_id, $nama, $komentar, $rating);
-        if ($stmt->execute()) {
-            $success = "Terima kasih! Rating Anda telah disimpan.";
-        } else {
-            $errors[] = "Gagal menyimpan rating.";
-        }
-        $stmt->close();
-    }
-}
-
-// Fetch SPPG
-$sppg = null;
-$stmt = $db->prepare("SELECT id, nama_sppg, alamat, kota, jam_buka, jam_tutup, waktu FROM sppg WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$res = $stmt->get_result();
-$sppg = $res ? $res->fetch_assoc() : null;
-$stmt->close();
-if (!$sppg) {
-    http_response_code(404);
-    die("SPPG tidak ditemukan.");
-}
-
-// Fetch sekolah
-$schools = [];
-$stmt = $db->prepare("SELECT nama_sekolah, jenjang, alamat FROM sekolah WHERE sppg_id = ? ORDER BY id ASC");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$res = $stmt->get_result();
-while ($r = $res->fetch_assoc()) {
-    $schools[] = $r;
-}
-$stmt->close();
-
-// Fetch menu
-$menus = [];
-$stmt = $db->prepare("SELECT hari, nama_menu, image FROM menu_sppg WHERE sppg_id = ? ORDER BY hari ASC, id ASC");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$res = $stmt->get_result();
-while ($r = $res->fetch_assoc()) {
-    $menus[] = $r;
-}
-$stmt->close();
-
-// Fetch ratings
-$ratings = [];
-$stmt = $db->prepare("SELECT nama, komentar, rating, tanggal FROM sppg_rating WHERE sppg_id = ? ORDER BY tanggal DESC, id DESC");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$res = $stmt->get_result();
-while ($r = $res->fetch_assoc()) {
-    $ratings[] = $r;
-}
-$stmt->close();
-
-// Average rating
-$avg = 0.0;
-$cnt = count($ratings);
-if ($cnt > 0) {
-    $sum = 0;
-    foreach ($ratings as $rt) {
-        $sum += (int)$rt['rating'];
-    }
-    $avg = round($sum / $cnt, 2);
-}
-
-// CSRF for forms
-$csrf = csrfToken();
-
-// Map hari (int) to label
-function hariLabel($h)
-{
-    // Assuming 1..7 mapping; customize if your data uses a different convention
-    $map = [
-        1 => 'Senin',
-        2 => 'Selasa',
-        3 => 'Rabu',
-        4 => 'Kamis',
-        5 => 'Jumat',
-        6 => 'Sabtu',
-        7 => 'Minggu'
-    ];
-    return $map[$h] ?? (string)$h;
-}
-
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
 <head>
-    <meta charset="utf-8">
-    <title>Detail SPPG — <?= h($sppg['nama_sppg']) ?></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- AdminLTE & dependencies via CDN -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
+    <meta charset="UTF-8">
+    <title>Detail SPPG - MBG Sistem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .table td,
-        .table th {
-            vertical-align: middle;
+        :root {
+            --green: #10b981;
+            --green-dark: #059669;
         }
 
-        .small-text {
-            font-size: .9rem;
-            color: #6c757d;
+        .gradient-bg {
+            background: linear-gradient(135deg, var(--green), #34d399);
         }
 
-        .rating-stars .fa-star {
-            color: #ffc107;
-        }
-
-        .menu-img {
-            height: 56px;
-            border-radius: 6px;
-        }
-
-        .badge-open {
-            background: #28a745;
-        }
-
-        .badge-closed {
-            background: #dc3545;
+        .text-green-main {
+            color: var(--green);
         }
     </style>
 </head>
 
-<body class="hold-transition layout-top-nav">
-    <div class="wrapper">
+<body class="bg-gray-100 min-h-screen">
 
-        <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <ul class="navbar-nav">
-                <li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a></li>
-                <li class="nav-item d-none d-sm-inline-block"><a href="../User/index.php" class="nav-link">Beranda</a></li>
-                <li class="nav-item d-none d-sm-inline-block"><a href="#" class="nav-link active">Detail</a></li>
-            </ul>
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a href="../logout.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                </li>
-            </ul>
-        </nav>
+    <header class="bg-white shadow-lg py-4 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">Detail SPPG</h1>
+            <a href="index.php" class="text-sm px-4 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition duration-150 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Kembali ke Daftar
+            </a>
+        </div>
+    </header>
 
-        <!-- Content Wrapper -->
-        <div class="content-wrapper">
-            <!-- Header -->
-            <section class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2">
-                        <div class="col-sm-6">
-                            <h1>Detail SPPG</h1>
-                        </div>
-                        <div class="col-sm-6">
-                            <ol class="breadcrumb float-sm-right">
-                                <li class="breadcrumb-item"><a href="../pages/user.php">Home</a></li>
-                                <li class="breadcrumb-item active"><?= h($sppg['nama_sppg']) ?></li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </section>
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
 
-            <!-- Alerts -->
-            <section class="content">
-                <div class="container-fluid">
-                    <?php if (!empty($errors)): ?>
-                        <div class="alert alert-danger alert-dismissible">
-                            <h5><i class="icon fas fa-ban"></i> Error!</h5>
-                            <?= nl2br(h(implode("\n", $errors))) ?>
-                            <button type="button" class="close" data-dismiss="alert">&times;</button>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($success !== ""): ?>
-                        <div class="alert alert-success alert-dismissible">
-                            <h5><i class="icon fas fa-check"></i> Sukses!</h5>
-                            <?= h($success) ?>
-                            <button type="button" class="close" data-dismiss="alert">&times;</button>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </section>
+        <?php
+        foreach ($data as $d) {
+            echo "
+  <div class='bg-white p-8 rounded-xl shadow-xl border border-gray-200'>
+    <h2 class='text-3xl font-extrabold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2'>
+      <svg xmlns='http://www.w3.org/2000/svg' class='w-7 h-7 text-green-main' viewBox='0 0 20 20' fill='currentColor'>
+        <path fill-rule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0z'/>
+      </svg>
+      Informasi SPPG
+    </h2>
 
-            <!-- Main content -->
-            <section class="content">
-                <div class="container-fluid">
+    <!-- GRID INFO + MAP -->
+    <div class='grid grid-cols-1 md:grid-cols-2 gap-8'>
 
-                    <!-- SPPG info -->
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h3 class="card-title"><i class="fas fa-store"></i> <?= h($sppg['nama_sppg']) ?></h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-lg-8">
-                                    <p><strong>Alamat:</strong> <?= h($sppg['alamat']) ?></p>
-                                    <p><strong>Kota:</strong> <?= h($sppg['kota']) ?></p>
-                                    <p><strong>Jam Operasional:</strong> <?= h($sppg['jam_buka']) ?> — <?= h($sppg['jam_tutup']) ?></p>
-                                    <p><strong>Waktu Input:</strong> <?= h($sppg['waktu']) ?></p>
-                                    <?php
-                                    // Open now badge (server-side check)
-                                    $openBadge = '';
-                                    if (!empty($sppg['jam_buka']) && !empty($sppg['jam_tutup'])) {
-                                        // Compare using MySQL TIME: we’ll do quick PHP comparison
-                                        $now = date('H:i:s');
-                                        if ($sppg['jam_buka'] <= $now && $now <= $sppg['jam_tutup']) {
-                                            $openBadge = '<span class="badge badge-open">Buka sekarang</span>';
-                                        } else {
-                                            $openBadge = '<span class="badge badge-closed">Tutup</span>';
-                                        }
-                                    }
-                                    echo $openBadge ? "<p><strong>Status:</strong> $openBadge</p>" : "";
-                                    ?>
-
-                                </div>
-                                <div class="col-lg-4">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div><strong>Rata-rata Rating</strong></div>
-                                                <div class="badge badge-warning"><?= $avg ?>/5</div>
-                                            </div>
-                                            <canvas id="ratingAvgChart" style="max-height:160px;"></canvas>
-                                            <p class="small-text mb-0 mt-2">Jumlah ulasan: <?= (int)$cnt ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Schools -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-school"></i> Sekolah Terkait</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Nama Sekolah</th>
-                                            <th>Jenjang</th>
-                                            <th>Alamat</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($schools as $sc): ?>
-                                            <tr>
-                                                <td><?= h($sc['nama_sekolah']) ?></td>
-                                                <td><?= h($sc['jenjang']) ?></td>
-                                                <td><?= h($sc['alamat']) ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        <?php if (empty($schools)): ?>
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">Tidak ada data sekolah.</td>
-                                            </tr>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <p class="small-text mb-0">Data sekolah ditautkan dengan SPPG ini.</p>
-                        </div>
-                    </div>
-
-                    <!-- Menus -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-utensils"></i> Menu Harian</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Hari</th>
-                                            <th>Nama Menu</th>
-                                            <th>Gambar</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($menus as $mn): ?>
-                                            <tr>
-                                                <td><?= h(hariLabel((int)$mn['hari'])) ?></td>
-                                                <td><?= h($mn['nama_menu']) ?></td>
-                                                <td>
-                                                    <?php if (!empty($mn['image'])): ?>
-                                                        <img src="../uploads/<?= h($mn['image']) ?>" alt="menu" class="menu-img">
-                                                    <?php else: ?>
-                                                        <span class="text-muted">—</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        <?php if (empty($menus)): ?>
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">Tidak ada menu.</td>
-                                            </tr>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <p class="small-text mb-0">Menu ditampilkan berdasarkan hari.</p>
-                        </div>
-                    </div>
-
-                    <!-- Ratings & new rating form -->
-                    <div class="card">
-                        <div class="card-header d-flex align-items-center justify-content-between">
-                            <h3 class="card-title"><i class="fas fa-star"></i> Ratings & Komentar</h3>
-                            <a href="#rating-form" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus"></i> Tambah Rating</a>
-                        </div>
-                        <div class="card-body">
-                            <?php if (!empty($ratings)): ?>
-                                <ul class="list-unstyled">
-                                    <?php foreach ($ratings as $rt): ?>
-                                        <li class="mb-3">
-                                            <div class="d-flex align-items-center">
-                                                <strong class="mr-2"><?= h($rt['nama']) ?></strong>
-                                                <span class="badge badge-warning"><?= (int)$rt['rating'] ?>/5</span>
-                                                <span class="small-text ml-2"><?= h($rt['tanggal']) ?></span>
-                                            </div>
-                                            <div><?= nl2br(h($rt['komentar'])) ?></div>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php else: ?>
-                                <p class="text-muted">Belum ada rating untuk SPPG ini.</p>
-                            <?php endif; ?>
-                            <hr>
-                            <div id="rating-form"></div>
-                            <form method="post" class="mt-2">
-                                <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
-                                <input type="hidden" name="action" value="add_rating">
-                                <input type="hidden" name="sppg_id" value="<?= (int)$id ?>">
-                                <div class="form-row">
-                                    <div class="form-group col-md-4">
-                                        <label>Nama</label>
-                                        <input type="text" name="nama" class="form-control" value="<?= h($_SESSION['username'] ?? '') ?>" required minlength="2" placeholder="Nama Anda">
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>Rating</label>
-                                        <select name="rating" class="form-control" required>
-                                            <option value="">-- Pilih --</option>
-                                            <option value="5">5 - Sangat Baik</option>
-                                            <option value="4">4 - Baik</option>
-                                            <option value="3">3 - Cukup</option>
-                                            <option value="2">2 - Kurang</option>
-                                            <option value="1">1 - Buruk</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-12">
-                                        <label>Komentar</label>
-                                        <textarea name="komentar" rows="3" class="form-control" required minlength="3" placeholder="Tulis pengalaman Anda..."></textarea>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <button class="btn btn-success" type="submit"><i class="fas fa-paper-plane"></i> Kirim</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Back button -->
-                    <div class="card">
-                        <div class="card-body d-flex justify-content-between">
-                            <a href="../User/index.php" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
-                            <span class="small-text">Detail dimuat langsung dari basis data.</span>
-                        </div>
-                    </div>
-
-                </div>
-            </section>
+      <!-- KIRI : INFORMASI -->
+      <div class='space-y-4 text-gray-700'>
+        <div>
+          <p class='font-medium text-sm text-gray-500'>Nama SPPG</p>
+          <p class='text-lg font-semibold border-b pb-2'>{$d['nama_sppg']}</p>
         </div>
 
-        <!-- Footer -->
-        <footer class="main-footer">
-            <div class="float-right d-none d-sm-inline">MBG Sistem — Transparan dan Tepat Sasaran</div>
-            <strong>&copy; <?= date('Y') ?> MBG Sistem.</strong> All rights reserved.
-        </footer>
-    </div>
+        <div>
+          <p class='font-medium text-sm text-gray-500'>Kota</p>
+          <p class='text-lg font-semibold border-b pb-2'>{$d['kota']}</p>
+        </div>
 
-    <!-- Charts init -->
-    <script>
-        // Average rating chart (simple doughnut)
-        (function() {
-            const ctx = document.getElementById('ratingAvgChart');
-            if (!ctx) return;
-            const avg = <?= json_encode($avg) ?>;
-            const cnt = <?= json_encode($cnt) ?>;
-            const filled = Math.max(0, Math.min(5, avg));
-            const data = [filled, Math.max(0, 5 - filled)];
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Skor', 'Sisa dari 5'],
-                    datasets: [{
-                        data,
-                        backgroundColor: ['#ffc107', '#e9ecef']
-                    }]
-                },
-                options: {
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
+        <div>
+          <p class='font-medium text-sm text-gray-500'>Jam Operasional</p>
+          <p class='text-lg font-semibold'>
+            {$d['jam_buka']} - {$d['jam_tutup']}
+          </p>
+        </div>
+
+        <div>
+          <p class='font-medium text-sm text-gray-500'>Alamat Lengkap</p>
+          <p class='text-lg font-semibold'>{$d['alamat']}</p>
+        </div>
+      </div>
+
+      <!-- KANAN : MAP -->
+      <div class='w-full h-[320px] rounded-xl overflow-hidden border shadow'>
+        <iframe
+          class='w-full h-full'
+          frameborder='0'
+          referrerpolicy='no-referrer-when-downgrade'
+          src='https://www.google.com/maps?q=" . urlencode($d['alamat']) . "&output=embed'
+          allowfullscreen>
+        </iframe>
+      </div>
+
+    </div>
+  </div>";
+        }
+        ?>
+
+
+
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 001.414 1.414L12 15.414l-3.293-3.293a1 1 0 00-1.414 1.414L8.586 17H5a3 3 0 01-3-3V5a1 1 0 001-1z" clip-rule="evenodd" />
+                </svg>
+                Menu Harian
+            </h2>
+
+            <?php
+            $sqlMenu = "select * from menu_sppg WHERE sppg_id='$sppg_id' ORDER BY hari ASC";
+            $dataMenu = $db->query($sqlMenu);
+            ?>
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-green-100/70">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-20">Hari</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nama Menu</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Deskripsi Menu</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">Gambar</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                        <?php
+                        if ($dataMenu->num_rows > 0) {
+                            foreach ($dataMenu as $m) {
+                                if ($m['hari'] == 1) {
+                                    $hari = "Senin";
+                                } elseif ($m['hari'] == 2) {
+                                    $hari = "Selasa";
+                                } elseif ($m['hari'] == 3) {
+                                    $hari = "Rabu";
+                                } elseif ($m['hari'] == 4) {
+                                    $hari = "Kamis";
+                                } elseif ($m['hari'] == 5) {
+                                    $hari = "Jum'at";
+                                } else {
+                                    $hari = "Lainnya";
+                                }
+                                echo "
+                                <tr class='even:bg-gray-50 hover:bg-green-50 transition duration-100'>
+                                    <td class='py-4 px-6 font-medium'>{$hari}</td>
+                                    <td class='py-4 px-6'>{$m['nama_menu']}</td>
+                                    <td class='py-4 px-6'>{$m['deskripsi_menu']}</td>
+                                    <td class='py-4 px-6'>
+                                        <img src='../uploads/{$m['image']}' alt='Menu' class='h-16 w-16 object-cover rounded-md shadow-sm border border-gray-200' />
+                                    </td>
+                                </tr>
+                                ";
+                            }
+                        } else {
+                            echo "<tr><td colspan='3' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
                         }
-                    },
-                    responsive: true
-                }
-            });
-        })();
-    </script>
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                Daftar Sekolah Penerima MBG
+            </h2>
+
+            <?php
+            $sqlSek = "select * from sekolah WHERE sppg_id='$sppg_id'";
+            $dataSek = $db->query($sqlSek);
+            ?>
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-green-100/70">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-10">No</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nama Sekolah</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Jenjang Pendidikan</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Alamat</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                        <?php
+                        $no = 0;
+                        if ($dataSek->num_rows > 0) {
+                            foreach ($dataSek as $ds) {
+                                $no++;
+                                echo "
+                                <tr class='even:bg-gray-50 hover:bg-green-50 transition duration-100'>
+                                    <td class='py-4 px-6'>$no</td>
+                                    <td class='py-4 px-6 font-medium'>{$ds['nama_sekolah']}</td>
+                                    <td class='py-4 px-6'>{$ds['jenjang']}</td>
+                                    <td class='py-4 px-6 max-w-xs'>{$ds['alamat']}</td>
+                                </tr>
+                                ";
+                            }
+                        } else {
+                            echo "<tr><td colspan='4' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada sekolah penerima yang terdaftar.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                Daftar kelompok 3B Penerima MBG
+            </h2>
+
+            <?php
+            $sql3b = "select * from ibu_hamil WHERE sppg_id='$sppg_id'";
+            $data3b = $db->query($sql3b);
+            ?>
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-green-100/70">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-10">No</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nama Penerima</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Klaster</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Alamat</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                        <?php
+                        $no = 0;
+                        if ($data3b->num_rows > 0) {
+                            foreach ($data3b as $c) {
+                                $no++;
+                                if ($c['klaster'] == 1) {
+                                    $c['klaster'] = "Ibu Hamil";
+                                } elseif ($c['klaster'] == 2) {
+                                    $c['klaster'] = "Ibu Menyusui";
+                                } elseif ($c['klaster'] == 3) {
+                                    $c['klaster'] = "Balita Non PAUD";
+                                }
+                                echo "
+                                <tr class='even:bg-gray-50 hover:bg-green-50 transition duration-100'>
+                                    <td class='py-4 px-6'>$no</td>
+                                    <td class='py-4 px-6 font-medium'>{$c['nama_ibu']}</td>
+                                    <td class='py-4 px-6'>{$c['klaster']}</td>
+                                    <td class='py-4 px-6 max-w-xs'>{$c['alamat']}</td>
+                                </tr>
+                                ";
+                            }
+                        } else {
+                            echo "<tr><td colspan='4' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada kelompok 3B penerima yang terdaftar.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- komentar -->
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 000 2h3a1 1 0 100-2H6z" clip-rule="evenodd" />
+                </svg>
+                Ulasan & Komentar
+            </h2>
+
+            <?php
+            $sqlRat = "
+SELECT 
+  sr.komentar,
+  sr.rating,
+  sr.tanggal,
+  u.username AS nama
+FROM sppg_rating sr
+JOIN users u ON sr.user_id = u.id
+WHERE sr.sppg_id = '$sppg_id'
+ORDER BY sr.tanggal DESC
+";
+            $dataRat = $db->query($sqlRat);
+            ?>
+            <div class="overflow-x-auto rounded-lg border border-gray-200 mb-8">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-green-100/70">
+                        <tr>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-40">Nama</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Komentar</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">Rating</th>
+                            <th class="py-3 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">Tanggal</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                        <?php
+                        if ($dataRat->num_rows > 0) {
+                            foreach ($dataRat as $dr) {
+                                if ($dr['rating'] == 5) {
+                                    $rating_stars = "⭐⭐⭐⭐⭐";
+                                } elseif ($dr['rating'] == 4) {
+                                    $rating_stars = "⭐⭐⭐⭐";
+                                } elseif ($dr['rating'] == 3) {
+                                    $rating_stars = "⭐⭐⭐";
+                                } elseif ($dr['rating'] == 2) {
+                                    $rating_stars = "⭐⭐";
+                                } elseif ($dr['rating'] == 1) {
+                                    $rating_stars = "⭐";
+                                } else {
+                                    $rating_stars = "";
+                                }
+                                echo "
+                                <tr class='even:bg-gray-50 hover:bg-green-50 transition duration-100'>
+                                    <td class='py-4 px-6 font-medium'>$dr[nama]</td>
+                                    <td     class='py-4 px-6 max-w-md'>$dr[komentar]</td>
+                                    <td class='py-4 px-6 text-lg'>$rating_stars</td>
+                                    <td class='py-4 px-6 text-gray-500'>$dr[tanggal]</td>
+                                </tr>
+                                ";
+                            }
+                        } else {
+                            echo "<tr><td colspan='4' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada ulasan untuk SPPG ini. Jadilah yang pertama!</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 pt-4 border-t">Beri Ulasan Anda</h3>
+
+            <?php if (
+                isset($_SESSION['level']) &&
+                $_SESSION['level'] === 'user' &&
+                $_SESSION['sppg_id'] != $sppg_id
+            ): ?>
+                <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg">
+                    Anda hanya dapat memberi ulasan pada SPPG yang anda terima.
+                </div>
+            <?php else: ?>
+                <form action="../actions/simpan_komentar.php" method="post" class="space-y-4">
+                    <input type="hidden" name="sppg_id" value="<?= $sppg_id ?>">
+                    <textarea
+                        name="komentar"
+                        required
+                        placeholder="Tulis ulasan Anda mengenai kualitas layanan atau menu..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg h-28 resize-none shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition"></textarea>
+
+                    <div>
+                        <label for="rating" class="block mb-1 font-medium text-gray-700">Pilih Rating</label>
+                        <select
+                            name="rating"
+                            id="rating"
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition appearance-none">
+                            <option value="5">⭐⭐⭐⭐⭐ (Sangat Bagus)</option>
+                            <option value="4">⭐⭐⭐⭐ (Bagus)</option>
+                            <option value="3">⭐⭐⭐ (Cukup)</option>
+                            <option value="2">⭐⭐ (Kurang)</option>
+                            <option value="1">⭐ (Buruk)</option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        name="submit"
+                        class="w-full gradient-bg hover:opacity-90 text-white py-3 rounded-lg font-semibold shadow-md transition duration-300 ease-in-out">
+                        Kirim Ulasan
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
+
+
+    </main>
+    <footer class="bg-gray-900 text-gray-300 mt-16">
+        <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-10">
+
+            <div class="md:col-span-1">
+                <h2 class="text-2xl font-bold text-white mb-3">MBG Sistem</h2>
+                <p class="mt-2 text-sm text-gray-400 leading-relaxed">
+                    Sistem Pelayanan Makanan Bergizi Gratis — Platform untuk transparansi dan akuntabilitas distribusi.
+                </p>
+            </div>
+
+            <div class="md:col-span-1">
+                <h3 class="text-lg font-semibold text-white mb-4">Navigasi Utama</h3>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="index.php#beranda" class="hover:text-green-400 transition duration-150 ease-in-out">Beranda</a></li>
+                    <li><a href="index.php#daftar_sppg" class="hover:text-green-400 transition duration-150 ease-in-out">Daftar SPPG</a></li>
+                </ul>
+            </div>
+
+            <div class="md:col-span-1">
+                <h3 class="text-lg font-semibold text-white mb-4">Informasi</h3>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="#" class="hover:text-green-400 transition">Tentang Kami</a></li>
+                    <li><a href="#" class="hover:text-green-400 transition">Kebijakan Privasi</a></li>
+                    <li><a href="#" class="hover:text-green-400 transition">Syarat & Ketentuan</a></li>
+                </ul>
+            </div>
+
+            <div class="md:col-span-1">
+                <h3 class="text-lg font-semibold text-white mb-4">Hubungi Kami</h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        Email: <span class="text-gray-400">adminGanteng@gmail.com</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 3.683c.27.134.56.248.87.35l3.864-3.864a1 1 0 011.414 0l1.414 1.414a1 1 0 010 1.414L14.43 12.01c.102.31.216.6.35.87l3.683.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-5.414a2 2 0 00-1.414.586L9 19.586A2 2 0 007.586 20H4a2 2 0 01-2-2V3z" />
+                        </svg>
+                        Telepon: <span class="text-gray-400">0812-3456-7890</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
+                        Alamat: <span class="text-gray-400">Purbalingga, Jawa Tengah, Indonesia</span>
+                    </li>
+                </ul>
+
+                <div class="flex gap-4 mt-6">
+                    <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Facebook">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M22 12c0-5.522-4.477-10-10-10S2 6.478 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987H7.898v-2.89h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.242 0-1.629.771-1.629 1.562v1.875h2.773l-.443 2.89h-2.33v6.987C18.343 21.128 22 16.991 22 12z" />
+                        </svg>
+                    </a>
+
+                    <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Twitter">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0012 7.48v.45A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+                        </svg>
+                    </a>
+
+                    <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Instagram">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.04c-5.5 0-9.96 4.46-9.96 9.96s4.46 9.96 9.96 9.96 9.96-4.46 9.96-9.96S17.5 2.04 12 2.04zm0 18.1A8.14 8.14 0 013.86 12 8.14 8.14 0 0112 3.86 8.14 8.14 0 0120.14 12 8.14 8.14 0 0112 20.14zm3.74-12.78a1.38 1.38 0 11-1.37-1.38 1.38 1.38 0 011.37 1.38zM12 7.96A4.03 4.03 0 108 12a4.03 4.03 0 004-4.04z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="border-t border-gray-800 py-4 text-center text-sm text-gray-500">
+            © 2025 MBG Sistem. Hak Cipta Dilindungi.
+        </div>
+    </footer>
+
 </body>
 
 </html>

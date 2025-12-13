@@ -68,11 +68,11 @@
                                                     case "3": $klaster="Balita Non PAUD"; $t3="selected";break;
                                                 }
                                                 if ($_POST['simpanEdit']) {
-                                                    $nama_ibu = $_POST['nama_ibu'];
+                                                    $nama = $_POST['nama_ibu'];
                                                     $klaster = $_POST['klaster'];
                                                     $alamat = $_POST['alamat'];
                                                     
-                                                    $sql = "update ibu_hamil set nama_ibu='$nama_ibu', klaster='$klaster', alamat='$alamat' WHERE id='$idx'";
+                                                    $sql = "update ibu_hamil set nama_ibu='$nama', klaster='$klaster', alamat='$alamat' WHERE id='$idx'";
                                                     $hasil = $db->query($sql);
                                                     if ($hasil) {
                                                         echo "<script>window.location='./?p=detail_sppg&id=$sppg_id';</script>";
@@ -85,7 +85,7 @@
                                           <form action="#" method="post" enctype="multipart/form-data">
                                               <table class='table table-striped table-hover'>
                                                   <tr>
-                                                      <td>Nama Ibu hamil</td>
+                                                      <td>Nama</td>
                                                       <td><input type="text" class="form-control" name="nama_ibu" value="<?= $d['nama_ibu'] ?>"></td>
                                                   <tr>
                                                       <td>Klaster</td>

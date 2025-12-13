@@ -57,13 +57,24 @@
                 $sqlSek = "select * from sekolah where sppg_id = '$idx'"; // sekolah penerima
                 $sqlIbu = "select * from ibu_hamil where sppg_id = '$idx'";
                 $sqlBalita = "select * from balita where sppg_id = '$idx'";
-                $sqlRat = "select * from sppg_rating where sppg_id = '$idx'"; //komentar & rating
+                $sqlRating = "
+SELECT 
+  sr.id,
+  sr.komentar,
+  sr.rating,
+  sr.tanggal,
+  u.username AS nama
+FROM sppg_rating sr
+LEFT JOIN users u ON sr.user_id = u.id
+WHERE sr.sppg_id = '$idx'
+ORDER BY sr.tanggal DESC
+"; //komentar & rating
 
                 $dataMenu = $db->query($sqlMenu);
                 $dataSekolah = $db->query($sqlSek);
                 $dataIbu = $db->query($sqlIbu);
                 $dataBalita = $db->query($sqlBalita);
-                $dataRating = $db->query($sqlRat);
+                $dataRating = $db->query($sqlRating);
                 $data = $db->query($sql);
                 foreach ($data as $d) {
                   echo "<table border=1 class='table table-striped table-bordered table-hover'>
@@ -138,11 +149,8 @@
                   <a href='./?p=tambah_sekolah&id=<?= $idx ?>'>
                     <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Sekolah</button>
                   </a>
-                  <a href='./?p=tambah_ibu_hamil&id=<?= $idx ?>'>
-                    <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Ibu hamil</button>
-                  </a>
-                  <a href='./?p=tambah_balita&id=<?= $idx ?>'>
-                    <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Balita</button>
+                  <a href='./?p=tambah_klaster&id=<?= $idx ?>'>
+                    <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Kelompok 3B</button>
                   </a>
                 </div>
                 <table class="table table-striped table-bordered table-hover">
