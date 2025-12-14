@@ -31,6 +31,7 @@ if (($_POST["cari"])  && !empty($keyword)) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>MBG - Sistem Pelayanan Makanan Bergizi Gratis</title>
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
@@ -87,7 +88,7 @@ if (($_POST["cari"])  && !empty($keyword)) {
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <section id="beranda" class="pt-16 pb-12">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div class="space-y-6">
+                <div class="space-y-6" data-aos="fade-right" data-aos-duration="1000">
                     <h2 class="text-4xl sm:text-5xl font-extrabold leading-snug">
                         Selamat Datang <?= $username ?><br>
                         <span class="text-[var(--green)] tracking-wide">Sistem Pelayanan Program MBG</span>
@@ -95,7 +96,7 @@ if (($_POST["cari"])  && !empty($keyword)) {
                     <p class="text-lg text-gray-600 max-w-xl">
                         Platform digital untuk mengawasi jalannya Program Makan Bergizi Gratis
                     </p>
-                    <a href="#daftar_sppg" class="inline-block px-8 py-3 text-white font-semibold rounded-full shadow-lg gradient-bg hover:shadow-xl hover:opacity-90 transition duration-300 ease-in-out">
+                    <a href="#daftar_sppg" class="inline-block px-8 py-3 text-white font-semibold rounded-full shadow-lg gradient-bg hover:shadow-xl hover:opacity-90 transition duration-300 ease-in-out" data-aos="zoom-in" data-aos-duration="1000">
                         Lihat Daftar SPPG
                     </a>
                 </div>
@@ -109,9 +110,9 @@ if (($_POST["cari"])  && !empty($keyword)) {
         </section>
 
         <section id="daftar_sppg" class="py-12">
-            <h2 class="text-3xl font-bold mb-8 text-gray-800 border-b-2 border-[var(--green)] pb-2 inline-block">Daftar SPPG</h2>
+            <h2 class="text-3xl font-bold mb-8 text-gray-800 border-b-2 border-[var(--green)] pb-2 inline-block"  data-aos="fade-up" data-aos-duration="500">Daftar SPPG</h2>
 
-            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6">
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6"  data-aos="flip-up" data-aos-duration="500">
                 <form action="" method="post" class="flex flex-col sm:flex-row gap-4 items-center">
                     <div class="relative flex-grow w-full">
                         <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,11 +120,12 @@ if (($_POST["cari"])  && !empty($keyword)) {
                         </svg>
                         <input type="text" placeholder="Cari berdasarkan Nama SPPG..." name="keyword" value="<?= $keyword ?>" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--green)] focus:border-[var(--green)] transition-all duration-200">
                     </div>
-                    <input type="submit" name="cari" value="cari" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold shadow-md gradient-bg hover:opacity-90 transition duration-200">
+                    <input type="submit" name="cari" value="cari" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold shadow-md gradient-bg hover:opacity-90 transition duration-200" data-aos="fade-right" data-aos-duration="1000">
                 </form>
                 <?= $pesan ?>
             </div>
-            <div class="overflow-x-auto rounded-xl shadow-xl border border-gray-200">
+            <div class="overflow-x-auto rounded-xl shadow-xl border border-gray-200" data-aos="fade-up"
+     data-aos-anchor-placement="center-bottom" data-aos-duration="500">
                 <table class="min-w-full bg-white divide-y divide-gray-200">
                     <thead class="bg-[var(--green)] text-white">
                         <tr>
@@ -278,6 +280,10 @@ if (($_POST["cari"])  && !empty($keyword)) {
         logoutBtn.addEventListener('click', doLogout);
         logoutBtn2.addEventListener('click', doLogout);
     </script>
+      <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script>
+    AOS.init();
+  </script>
 </body>
 
 </html>

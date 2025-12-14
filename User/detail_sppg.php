@@ -2,22 +2,6 @@
 session_start();
 
 require_once "../config.php";
-if (isset($_SESSION['success'])) {
-    // Menggunakan kelas alert modern Tailwind untuk pesan sukses
-    echo "<script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'fixed top-0 left-1/2 transform -translate-x-1/2 mt-4 z-50 p-4 rounded-lg bg-green-100 border border-green-400 text-green-700 shadow-xl transition-opacity duration-300';
-                alertDiv.innerHTML = '<span class=\"font-medium\">Sukses!</span> {$_SESSION['success']}';
-                document.body.prepend(alertDiv);
-                setTimeout(() => {
-                    alertDiv.classList.add('opacity-0');
-                    setTimeout(() => alertDiv.remove(), 300);
-                }, 3000); // Hilangkan setelah 3 detik
-            });
-          </script>";
-    unset($_SESSION['success']); //hapus sesion
-}
 
 $idx = $_GET['id'];
 $sql = "select * from sppg where id='$idx'";
@@ -45,6 +29,7 @@ if (isset($_POST["submit"])) {
     <meta charset="UTF-8">
     <title>Detail SPPG - MBG Sistem</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
     <style>
         :root {
             --green: #10b981;
@@ -75,12 +60,12 @@ if (isset($_POST["submit"])) {
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8" data-aos="fade-right" data-aos-duration="1000">
 
         <?php
         foreach ($data as $d) {
             echo "
-  <div class='bg-white p-8 rounded-xl shadow-xl border border-gray-200'>
+  <div class='bg-white p-8 rounded-xl shadow-xl border border-gray-200' >
     <h2 class='text-3xl font-extrabold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2'>
       <svg xmlns='http://www.w3.org/2000/svg' class='w-7 h-7 text-green-main' viewBox='0 0 20 20' fill='currentColor'>
         <path fill-rule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0z'/>
@@ -116,7 +101,6 @@ if (isset($_POST["submit"])) {
         </div>
       </div>
 
-      <!-- KANAN : MAP -->
       <div class='w-full h-[320px] rounded-xl overflow-hidden border shadow'>
         <iframe
           class='w-full h-full'
@@ -133,8 +117,8 @@ if (isset($_POST["submit"])) {
         ?>
 
 
-
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+        <!-- menu harian -->
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 001.414 1.414L12 15.414l-3.293-3.293a1 1 0 00-1.414 1.414L8.586 17H5a3 3 0 01-3-3V5a1 1 0 001-1z" clip-rule="evenodd" />
@@ -194,8 +178,8 @@ if (isset($_POST["submit"])) {
                 </table>
             </div>
         </div>
-
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+        <!-- sekolah -->
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -242,8 +226,8 @@ if (isset($_POST["submit"])) {
                 </table>
             </div>
         </div>
-
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+        <!-- kelomppok 3b -->
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -298,7 +282,7 @@ if (isset($_POST["submit"])) {
             </div>
         </div>
         <!-- komentar -->
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200">
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 000 2h3a1 1 0 100-2H6z" clip-rule="evenodd" />
@@ -375,7 +359,7 @@ ORDER BY sr.tanggal DESC
                     Anda hanya dapat memberi ulasan pada SPPG yang anda terima.
                 </div>
             <?php else: ?>
-                <form action="../actions/simpan_komentar.php" method="post" class="space-y-4">
+                <form action="../actions/simpan_komentar.php" method="post" class="space-y-4"  data-aos="zoom-in" data-aos-duration="500">
                     <input type="hidden" name="sppg_id" value="<?= $sppg_id ?>">
                     <textarea
                         name="komentar"
@@ -488,7 +472,10 @@ ORDER BY sr.tanggal DESC
             © 2025 MBG Sistem. Hak Cipta Dilindungi.
         </div>
     </footer>
-
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script>
+    AOS.init();
+  </script>
 </body>
 
 </html>

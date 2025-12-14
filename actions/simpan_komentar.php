@@ -13,29 +13,7 @@ $komentar = htmlspecialchars($_POST['komentar']);
 $rating   = (int)$_POST['rating'];
 
 // VALIDASI HAK AKSES
-if ($_SESSION['sppg_id'] != $sppg_id) {
-  ?>
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  </head>
-  <body>
-    <script>
-      Swal.fire({
-        icon: 'error',
-        title: 'Akses Ditolak',
-        text: 'Anda tidak berhak mengakses SPPG ini',
-        confirmButtonColor: '#198754'
-      }).then(() => {
-        window.location.href = '../User/';
-      });
-    </script>
-  </body>
-  </html>
-  <?php
-  exit;
-}
+
 
 // SIMPAN KOMENTAR
 $db->query("

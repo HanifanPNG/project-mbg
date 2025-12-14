@@ -116,8 +116,8 @@ if ($_POST['btnLogin']) {
             <div class="input-group-text"><span class="bi bi-person"></span></div>
           </div>
           <div class="input-group mb-3">
-            <input type="password" class="form-control" placeholder="Password" name="tpass" />
-            <div class="input-group-text"><span class="bi bi-lock-fill"></span></div>
+            <input type="password" class="form-control" placeholder="Password" name="tpass" id="password" />
+            <div class="input-group-text"><span class="bi bi-eye-slash" id="togglePassword"></span></div>
           </div>
           <!--begin::Row-->
           <div class="row">
@@ -148,6 +148,19 @@ if ($_POST['btnLogin']) {
   </div>
 
 </body>
+  <script>
+    const togglePassword = document.getElementById("togglePassword");
+  const password = document.getElementById("password");
+
+  togglePassword.addEventListener("click", function () {
+    const type = password.getAttribute("type") === "password" ? "text" : "password";
+    password.setAttribute("type", type);
+
+    // Ganti icon
+    this.classList.toggle("bi-eye");
+    this.classList.toggle("bi-eye-slash");
+  });
+  </script>
   <!--begin::Third Party Plugin(OverlayScrollbars)-->
   <script
     src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js"
