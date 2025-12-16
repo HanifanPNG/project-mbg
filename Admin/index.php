@@ -296,6 +296,12 @@ if($_SESSION['isLogin']==false or $_SESSION['level']!="admin"){
                 </a>
               </li>
               <li class="nav-item">
+                <a href="./?p=user" class="nav-link">
+                  <i class="nav-icon bi bi-circle-fill"></i>
+                  <p>Kelola User</p>
+                </a>
+              </li>
+              <li class="nav-item">
                 <a href="./?p=gantiPW" class="nav-link">
                   <i class="nav-icon bi bi-circle-fill"></i>
                   <p>Ganti Password</p>

@@ -16,7 +16,7 @@ if ($_POST['btnLogin']) {
             if (password_verify($tpass, $data['password'])) {
 
               // CEK LEVEL YANG BOLEH LOGIN
-              if ($data['level'] != 'admin' && $data['level'] != 'user') {
+              if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
                 die("Akun tidak diizinkan login");
               }
 
@@ -33,8 +33,10 @@ if ($_POST['btnLogin']) {
 
               if ($data['level'] == 'admin') {
                 header("Location: Admin/");
-              } else {
+              } elseif($data['level']== 'user') {
                 header("Location: User/");
+              } elseif($data['level']== 'sppg'){
+                header("Location: SPPG/");
               }
               exit;
             }

@@ -18,16 +18,13 @@ switch ($p) {
     case 'tambah_sppg' :
         require_once "tambah_sppg.php";
         break; 
-
-    case 'tambah_menu' :
-        require_once "tambah_menu.php";
-        break;      
-    case 'edit_menu' :
-        require_once "edit_menu.php";
-        break;      
-    case 'hapus_menu' :
-        require_once "hapus_menu.php";
-        break;      
+    case 'user' :
+        require_once "user.php";
+        break; 
+    case 'hapus_user' :
+        require_once "hapus_user.php";
+        break; 
+            
         
     case 'tambah_sekolah' :
         require_once "tambah_sekolah.php";

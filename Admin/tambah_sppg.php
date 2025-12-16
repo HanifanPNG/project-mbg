@@ -83,7 +83,7 @@
                           <tr>
                             <td valign="top">Alamat</td>
                             <td><textarea name="alamat" class="form-control" style="width: 200px;"><?= $alamat ?></textarea></td>
-                          </tr>
+                         </tr>
                           <tr>
                             <td>Link Google Maps</td>
                             <td>

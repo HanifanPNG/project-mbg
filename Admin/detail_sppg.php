@@ -90,9 +90,7 @@ ORDER BY sr.tanggal DESC
                               <tr><td>Jam Tutup</td><td> $d[jam_tutup]</td></tr>  
                              </table>
                              <h4>Menu Harian</h4> 
-                              <a href='./?p=tambah_menu&id=$d[id]'>
-                              <button type='submit' class='btn btn-primary my-1'><i class='bi bi-plus-circle'></i> Tambah Menu</button>
-                            </a>";
+                              ";
                 }
                 ?>
                 <!-- Menu -->
@@ -102,7 +100,6 @@ ORDER BY sr.tanggal DESC
                     <th>Nama Menu</th>
                     <th>Deskripsi Menu</th>
                     <th>Foto</th>
-                    <th>Aksi</th>
                   </tr>
 
                   <?php
@@ -130,10 +127,6 @@ ORDER BY sr.tanggal DESC
                           <?php } else {
                             echo "-";
                           } ?>
-                        </td>
-                        <td>
-                          <a href="./?p=edit_menu&id=<?= $m['id'] ?>&sppg_id=<?= $d['id'] ?>"><i class="bi bi-pencil btn btn-warning"></i></a>
-                          <a href="./?p=hapus_menu&id=<?= $m['id'] ?>&sppg_id=<?= $d['id'] ?>"><i class="bi bi-trash3 btn btn-danger"></i></a>
                         </td>
                       </tr>
                     <?php }
