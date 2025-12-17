@@ -4,7 +4,6 @@ require_once "../config.php";
 
 $username = $_SESSION['user'] ?? 'SPPG';
 
-
 if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
     die("Akses ditolak");
 }
@@ -120,15 +119,15 @@ if (!$dataMenu) {
         </section>
         <?php
         $qMinggu = $db->query("
-    SELECT 
-        YEARWEEK(tanggal,1) AS minggu,
-        MIN(tanggal) AS dari,
-        MAX(tanggal) AS sampai
-    FROM menu_sppg
-    WHERE sppg_id = '$sppg_id'
-    GROUP BY YEARWEEK(tanggal,1)
-    ORDER BY minggu DESC
-");
+            SELECT 
+                YEARWEEK(tanggal,1) AS minggu,
+                MIN(tanggal) AS dari,
+                MAX(tanggal) AS sampai
+            FROM menu_sppg
+            WHERE sppg_id = '$sppg_id'
+            GROUP BY YEARWEEK(tanggal,1)
+            ORDER BY minggu DESC
+        ");
         ?>
         <select
             onchange="location.href='?minggu='+this.value"

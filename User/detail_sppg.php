@@ -159,7 +159,7 @@ if (isset($_POST["submit"])) {
                         echo "
                         <tr class='bg-green-100'>
                             <td colspan='4' class='px-6 py-3 font-bold text-green-800'>
-                                📅 $h, " . date('d M Y', strtotime($m['tanggal'])) . "
+                               Dibuat : 📅 $h, " . date('d M Y', strtotime($m['tanggal'])) . "
                             </td>
                         </tr>
                         ";          
