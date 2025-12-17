@@ -15,6 +15,7 @@ $sql = "SELECT
 
 if ($_POST["tombol-cari"]) {
       $sql = "SELECT 
+            users.id,
             users.username, 
             sppg.nama_sppg 
         FROM 

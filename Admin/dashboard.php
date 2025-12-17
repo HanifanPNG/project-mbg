@@ -21,8 +21,7 @@
 require_once "../config.php";
 $total_sppg = $db->query("select count(*) as jumlah from sppg")->fetch_assoc()['jumlah'];
 $total_menu = $db->query("select count(*) as jumlah_menu from menu_sppg")->fetch_assoc()['jumlah_menu'];
-$total_sekolah = $db->query("select count(*) as jumlah_sekolah from sekolah")->fetch_assoc()['jumlah_sekolah'];
-?>
+$total_user = $db->query("SELECT COUNT(*) AS jumlah_user FROM users WHERE level = 'user'")->fetch_assoc()['jumlah_user'];?>
       <main class="app-main">
         <!--begin::App Content Header-->
         <div class="app-content-header">
@@ -107,15 +106,15 @@ $total_sekolah = $db->query("select count(*) as jumlah_sekolah from sekolah")->f
                       </div>
                       <!-- total sekolah -->
                       <div class="col-md-4 mb-3">
-                        <div class="bg-biru text-white p-4 rounded hover-scale">
+                        <div class="bg-oren text-white p-4 rounded hover-scale">
                           <div class="d-flex align-items-center justify-content-between">
                             <div>
-                              <h4 class="fw-bold mb-1">Total Sekolah</h4>
+                              <h4 class="fw-bold mb-1">Total User</h4>
                             </div>
-                            <i class="bi bi-mortarboard fs-1 opacity-75"></i>
+                            <i class="bi bi-person fs-1 opacity-75"></i>
                           </div>
                           <div class="justify-content-start align-items-center d-flex">
-                            <h2 class="fw-bold mt-3 mb-0 "><?= $total_sekolah ?></h2>
+                            <h2 class="fw-bold mt-3 mb-0 "><?= $total_user?></h2>
                           </div>
                         </div>
                       </div>

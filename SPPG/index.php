@@ -10,13 +10,30 @@ if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
 }
 $sppg_id = $_SESSION['sppg_id'];
 
-$sqlMenu  = "SELECT * FROM menu_sppg WHERE sppg_id = '$sppg_id' order by hari asc";
+// minggu aktif (contoh: 202502)
+$minggu = isset($_GET['minggu'])
+    ? (int) $_GET['minggu']
+    : (int) date('oW');
+
+$sqlMenu = "
+SELECT *
+FROM menu_sppg
+WHERE sppg_id = '$sppg_id'
+AND YEARWEEK(tanggal, 1) = $minggu
+ORDER BY tanggal ASC
+";
+
 $dataMenu = $db->query($sqlMenu);
+
+if (!$dataMenu) {
+    die("SQL Error: " . $db->error);
+}
+
 
 ?>
 
 <!doctype html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 
 <head>
     <meta charset="UTF-8">
@@ -86,7 +103,7 @@ $dataMenu = $db->query($sqlMenu);
 
         <section id="beranda" class="pt-16 pb-12">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div data-aos="fade-right">
+                <div data-aos="fade-right" data-aos-duration="1000">
                     <h2 class="text-4xl sm:text-5xl font-extrabold leading-snug mb-4">
                         Selamat Datang<br>
                         <span class="text-[var(--green)]"><?= $username ?></span>
@@ -94,65 +111,104 @@ $dataMenu = $db->query($sqlMenu);
                     <p class="text-lg text-gray-600 mb-6">
                         Panel pengelolaan dan monitoring Program Makan Bergizi Gratis
                     </p>
-                    <a href="#daftar_sppg" class="inline-block px-8 py-3 text-white font-semibold rounded-full gradient-bg shadow-lg hover:opacity-90 transition">
-                        Lihat Data SPPG
+                    <a href="#daftar_sppg" class="inline-block px-8 py-3 text-white font-semibold rounded-full gradient-bg shadow-lg hover:opacity-90 transition" data-aos="flip-up" data-aos-duration="1000">
+                        Lihat Data Menu
                     </a>
                 </div>
 
             </div>
         </section>
+        <?php
+        $qMinggu = $db->query("
+    SELECT 
+        YEARWEEK(tanggal,1) AS minggu,
+        MIN(tanggal) AS dari,
+        MAX(tanggal) AS sampai
+    FROM menu_sppg
+    WHERE sppg_id = '$sppg_id'
+    GROUP BY YEARWEEK(tanggal,1)
+    ORDER BY minggu DESC
+");
+        ?>
+        <select
+            onchange="location.href='?minggu='+this.value"
+            class="border rounded-lg px-4 py-2 mb-4">
+
+            <?php while ($m = $qMinggu->fetch_assoc()): ?>
+                <option value="<?= $m['minggu'] ?>"
+                    <?= ($minggu == $m['minggu']) ? 'selected' : '' ?>>
+
+                    <?php if (!empty($m['dari']) && !empty($m['sampai'])): ?>
+                        <?= date('d M', strtotime($m['dari'])) ?>
+                        -
+                        <?= date('d M Y', strtotime($m['sampai'])) ?>
+                    <?php else: ?>
+                        -
+                    <?php endif; ?>
+
+                </option>
+            <?php endwhile ?>
+        </select>
 
         <!-- TABLE -->
-<section id="daftar_sppg" class="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
-    <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <h2 class="text-4xl font-extrabold text-gray-900 mb-4 sm:mb-0 border-b-4 border-green-500 pb-1">
-                Daftar Menu
-            </h2>
-            <a href="tambah_menu.php?id=<?= $sppg_id ?>">
-                <button type="submit"
-                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600
+        <section id="daftar_sppg" class="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-4 sm:mb-0 border-b-4 border-green-500 pb-1" data-aos="fade-right" data-aos-duration="500">
+                        Daftar Menu
+                    </h2>
+                    <a href="tambah_menu.php?id=<?= $sppg_id ?>">
+                        <button type="submit"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600
                     px-6 py-3 text-lg text-white font-semibold shadow-md
-                    hover:bg-green-700 hover:shadow-xl transition duration-300 transform hover:scale-105">
-                    <i class="bi bi-plus-lg"></i>
-                    Tambah Menu
-                </button>
-            </a>
-        </div>
+                    hover:bg-green-700 hover:shadow-xl transition duration-300 transform hover:scale-105" data-aos="flip-up" data-aos-duration="700">
+                            <i class="bi bi-plus-lg"></i>
+                            Tambah Menu
+                        </button>
+                    </a>
+                </div>
 
-        <div class="shadow-lg rounded-xl overflow-hidden border border-gray-200 bg-white">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-20">Hari</th>
-                            <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nama Menu</th>
-                            <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Deskripsi Menu</th>
-                            <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-32">Gambar</th>
-                            <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-32">Waktu</th>
-                            <th class="py-4 px-6 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-40">Aksi</th>
-                        </tr>
-                    </thead>
+                <div class="shadow-lg rounded-xl overflow-hidden border border-gray-200 bg-white" data-aos="fade-right" data-aos-duration="500">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-20">Hari</th>
+                                    <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nama Menu</th>
+                                    <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Deskripsi Menu</th>
+                                    <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-32">Gambar</th>
+                                    <th class="py-4 px-6 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-32">Waktu</th>
+                                    <th class="py-4 px-6 text-center text-xs font-bold text-gray-600 uppercase tracking-wider w-40">Aksi</th>
+                                </tr>
+                            </thead>
 
-                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
-                        <?php
-                        if ($dataMenu->num_rows > 0) {
-                            foreach ($dataMenu as $m) {
-                                // Logika PHP untuk menentukan hari (Backend tidak diubah)
-                                if ($m['hari'] == 1) {
-                                    $hari = "Senin";
-                                } elseif ($m['hari'] == 2) {
-                                    $hari = "Selasa";
-                                } elseif ($m['hari'] == 3) {
-                                    $hari = "Rabu";
-                                } elseif ($m['hari'] == 4) {
-                                    $hari = "Kamis";
-                                } elseif ($m['hari'] == 5) {
-                                    $hari = "Jum'at";
-                                } else {
-                                    $hari = "Lainnya";
-                                }
-                                echo "
+                            <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                                <?php
+                                if ($dataMenu->num_rows > 0) {
+                                    foreach ($dataMenu as $m) {
+
+                                        $waktu = !empty($m['waktu'])
+                                            ? date('d M Y H:i', strtotime($m['waktu']))
+                                            : '-';
+                                        $update = !empty($m['updated_at'])
+                                            ? date('d M Y H:i', strtotime($m['updated_at']))
+                                            : '-';
+
+                                        // Logika PHP untuk menentukan hari (Backend tidak diubah)
+                                        if ($m['hari'] == 1) {
+                                            $hari = "Senin";
+                                        } elseif ($m['hari'] == 2) {
+                                            $hari = "Selasa";
+                                        } elseif ($m['hari'] == 3) {
+                                            $hari = "Rabu";
+                                        } elseif ($m['hari'] == 4) {
+                                            $hari = "Kamis";
+                                        } elseif ($m['hari'] == 5) {
+                                            $hari = "Jum'at";
+                                        } else {
+                                            $hari = "Lainnya";
+                                        }
+                                        echo "
                                 <tr class='bg-white even:bg-gray-50 hover:bg-green-50 transition duration-150'>
                                     <td class='py-4 px-6 font-semibold text-gray-800'>{$hari}</td>
                                     <td class='py-4 px-6 font-medium'>{$m['nama_menu']}</td>
@@ -160,7 +216,10 @@ $dataMenu = $db->query($sqlMenu);
                                     <td class='py-4 px-6'>
                                         <img src='../uploads/{$m['image']}' alt='Menu' class='h-16 w-16 object-cover rounded-lg shadow-sm border border-gray-200' />
                                     </td>
-                                    <td>{$m['waktu']}</td>
+                                        <td class='text-xs text-gray-600'>
+                                        Created: {$waktu}<br>
+                                        Update: {$update}
+                                    </td>
                                     <td class='py-4 px-6 text-center whitespace-nowrap'>
                                         <div class='flex items-center justify-center space-x-2'>
                                             <a href='edit_menu.php?id={$m['id']}&sppg_id=$sppg_id' class='p-2 rounded-full bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition duration-150' title='Edit Menu'>
@@ -173,17 +232,17 @@ $dataMenu = $db->query($sqlMenu);
                                     </td>
                                 </tr>
                                 ";
-                            }
-                        } else {
-                            echo "<tr><td colspan='5' class='py-10 text-center text-gray-500 bg-white font-medium'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
-                        }
-                        ?>
-                    </tbody>
-                </table>
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='5' class='py-10 text-center text-gray-500 bg-white font-medium'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        </div>
-</section>
+        </section>
     </main>
 
     <!-- FOOTER -->

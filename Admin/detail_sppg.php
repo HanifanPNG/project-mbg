@@ -53,7 +53,7 @@
                 $idx = $_GET['id'];
                 require_once "../config.php";
                 $sql = "select * from sppg where id='$idx'"; // informasi sppg
-                $sqlMenu = "select * from menu_sppg where sppg_id = '$idx' order by hari ASC"; // menu sppg
+                $sqlMenu = "select * from menu_sppg where sppg_id = '$idx' order by tanggal ASC, hari ASC"; // menu sppg
                 $sqlSek = "select * from sekolah where sppg_id = '$idx'"; // sekolah penerima
                 $sqlIbu = "select * from ibu_hamil where sppg_id = '$idx'";
                 $sqlBalita = "select * from balita where sppg_id = '$idx'";
@@ -103,8 +103,27 @@ ORDER BY sr.tanggal DESC
                   </tr>
 
                   <?php
+                  $lasttanggal = null;
                   if ($dataMenu->num_rows > 0) {
                     foreach ($dataMenu as $m) {
+                      if ($lasttanggal !== $m['tanggal']) {
+                        $hariIndo = [
+                          'Monday'    => 'Senin',
+                          'Tuesday'   => 'Selasa',
+                          'Wednesday' => 'Rabu',
+                          'Thursday'  => 'Kamis',
+                          'Friday'    => 'Jumat',
+                        ];
+                        $h = $hariIndo[date('l', strtotime($m['tanggal']))];
+                        echo "
+                        <tr class='bg-green-100'>
+                            <td colspan='4' class='px-6 py-3 font-bold text-green-800'>
+                                📅 $h, " . date('d M Y', strtotime($m['tanggal'])) . "
+                            </td>
+                        </tr>
+                        ";
+                        $lasttanggal = $m['tanggal'];
+                      }
                       if ($m['hari'] == 1) {
                         $hari = "Senin";
                       } elseif ($m['hari'] == 2) {
@@ -190,15 +209,15 @@ ORDER BY sr.tanggal DESC
                   if ($dataIbu->num_rows > 0) {
                     foreach ($dataIbu as $di) {
                       $no++;
-                        if ($di['klaster'] == 1) {
-                          $klaster = "Ibu Hamil";
-                        } elseif ($di['klaster'] == 2) {
-                          $klaster = "Ibu Menyusui";
-                        } elseif ($di['klaster'] == 3) {
-                          $klaster = "Balita Non PAUD";
-                        } else {
-                          $klaster = "klaster Tidak Diketahui";
-                        }
+                      if ($di['klaster'] == 1) {
+                        $klaster = "Ibu Hamil";
+                      } elseif ($di['klaster'] == 2) {
+                        $klaster = "Ibu Menyusui";
+                      } elseif ($di['klaster'] == 3) {
+                        $klaster = "Balita Non PAUD";
+                      } else {
+                        $klaster = "klaster Tidak Diketahui";
+                      }
                       echo "<tr>
                                 <td>$no</td>
                                 <td>{$di['nama_ibu']}</td>

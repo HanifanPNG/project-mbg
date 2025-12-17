@@ -28,22 +28,23 @@
       $sppg_id = $_GET['id'] ?? '';
       date_default_timezone_set('Asia/Jakarta');
       if (isset($_POST['simpanMenu'])) {
-          $hari = $_POST['hari'];
-          $nama_menu = $_POST['nama_menu'];
-          $deskripsi = $_POST['deskripsi_menu'];
-          $image = $_FILES['image']['name'];
-          $tmp = $_FILES['image']['tmp_name'];
+        $hari = $_POST['hari'];
+        $nama_menu = $_POST['nama_menu'];
+        $tanggal = $_POST['tanggal'];
+        $deskripsi = $_POST['deskripsi_menu'];
+        $image = $_FILES['image']['name'];
+        $tmp = $_FILES['image']['tmp_name'];
 
-          move_uploaded_file($tmp, "../uploads/" . $image);
+        move_uploaded_file($tmp, "../uploads/" . $image);
 
-          require_once "../config.php";
-          $waktu = date("Y-m-d H:i:s");
-          $sql = "INSERT INTO menu_sppg 
-                  (sppg_id, hari, nama_menu, deskripsi_menu, image, waktu)
-                  VALUES ('$sppg_id','$hari','$nama_menu','$deskripsi','$image', '$waktu')";
-          $db->query($sql);
+        require_once "../config.php";
+        $waktu = date("Y-m-d H:i:s");
+        $sql = "INSERT INTO menu_sppg 
+                  (sppg_id, hari, nama_menu, deskripsi_menu, image, waktu, tanggal)
+                  VALUES ('$sppg_id','$hari','$nama_menu','$deskripsi','$image', '$waktu','$tanggal')";
+        $db->query($sql);
 
-          echo "
+        echo "
           <div class='mb-6 flex items-center gap-3 rounded-xl bg-green-50 px-5 py-4 text-green-700 border border-green-200'>
             <span class='text-xl'>✅</span>
             <span class='font-medium'>Menu berhasil ditambahkan</span>
@@ -98,6 +99,17 @@
                    focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition"><?= $deskripsi ?? '' ?></textarea>
         </div>
 
+        <!-- tanggal -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Tanggal Penyajian
+          </label>
+          <input type="date" name="tanggal"
+            value="<?= $tanggal ?>"
+            required
+            class="w-full border-gray-300 rounded-lg p-3">
+        </div>
+
         <!-- Upload -->
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">
@@ -137,4 +149,5 @@
   </main>
 
 </body>
+
 </html>

@@ -118,7 +118,7 @@ if (isset($_POST["submit"])) {
 
 
         <!-- menu harian -->
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200" data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 001.414 1.414L12 15.414l-3.293-3.293a1 1 0 00-1.414 1.414L8.586 17H5a3 3 0 01-3-3V5a1 1 0 001-1z" clip-rule="evenodd" />
@@ -127,7 +127,7 @@ if (isset($_POST["submit"])) {
             </h2>
 
             <?php
-            $sqlMenu = "select * from menu_sppg WHERE sppg_id='$sppg_id' ORDER BY hari ASC";
+            $sqlMenu = "select * from menu_sppg where sppg_id = '$sppg_id' order by tanggal ASC, hari ASC";
             $dataMenu = $db->query($sqlMenu);
             ?>
 
@@ -145,7 +145,27 @@ if (isset($_POST["submit"])) {
                     <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
                         <?php
                         if ($dataMenu->num_rows > 0) {
+                            $lastTanggal = null;
                             foreach ($dataMenu as $m) {
+                                if ($lastTanggal !== $m['tanggal']) {
+                                    $hariIndo = [
+                          'Monday'    => 'Senin',
+                          'Tuesday'   => 'Selasa',
+                          'Wednesday' => 'Rabu',
+                          'Thursday'  => 'Kamis',
+                          'Friday'    => 'Jumat',
+                        ];
+                        $h = $hariIndo[date('l', strtotime($m['tanggal']))];
+                        echo "
+                        <tr class='bg-green-100'>
+                            <td colspan='4' class='px-6 py-3 font-bold text-green-800'>
+                                📅 $h, " . date('d M Y', strtotime($m['tanggal'])) . "
+                            </td>
+                        </tr>
+                        ";          
+                                    $lastTanggal = $m['tanggal'];
+                                }
+                                // Konversi hari
                                 if ($m['hari'] == 1) {
                                     $hari = "Senin";
                                 } elseif ($m['hari'] == 2) {
@@ -157,19 +177,20 @@ if (isset($_POST["submit"])) {
                                 } elseif ($m['hari'] == 5) {
                                     $hari = "Jum'at";
                                 } else {
-                                    $hari = "Lainnya";
+                                    $hari = "-";
                                 }
+
                                 echo "
-                                <tr class='even:bg-gray-50 hover:bg-green-50 transition duration-100'>
-                                    <td class='py-4 px-6 font-medium'>{$hari}</td>
-                                    <td class='py-4 px-6'>{$m['nama_menu']}</td>
-                                    <td class='py-4 px-6'>{$m['deskripsi_menu']}</td>
-                                    <td class='py-4 px-6'>
-                                        <img src='../uploads/{$m['image']}' alt='Menu' class='h-16 w-16 object-cover rounded-md shadow-sm border border-gray-200' />
-                                    </td>
-                                </tr>
-                                ";
-                            }
+    <tr class='even:bg-gray-50 hover:bg-green-50 transition duration-100'>
+        <td class='py-4 px-6 font-medium'>{$hari}</td>
+        <td class='py-4 px-6'>{$m['nama_menu']}</td>
+        <td class='py-4 px-6'>{$m['deskripsi_menu']}</td>
+        <td class='py-4 px-6'>
+            <img src='../uploads/{$m['image']}' class='h-16 w-16 object-cover rounded-md border'>
+        </td>
+    </tr>
+    ";
+                            }   
                         } else {
                             echo "<tr><td colspan='3' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
                         }
@@ -179,7 +200,7 @@ if (isset($_POST["submit"])) {
             </div>
         </div>
         <!-- sekolah -->
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200" data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -227,7 +248,7 @@ if (isset($_POST["submit"])) {
             </div>
         </div>
         <!-- kelomppok 3b -->
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200" data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -282,7 +303,7 @@ if (isset($_POST["submit"])) {
             </div>
         </div>
         <!-- komentar -->
-        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200"  data-aos="fade-right" data-aos-duration="1000">
+        <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200" data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 000 2h3a1 1 0 100-2H6z" clip-rule="evenodd" />
@@ -359,7 +380,7 @@ ORDER BY sr.tanggal DESC
                     Anda hanya dapat memberi ulasan pada SPPG yang anda terima.
                 </div>
             <?php else: ?>
-                <form action="../actions/simpan_komentar.php" method="post" class="space-y-4"  data-aos="zoom-in" data-aos-duration="500">
+                <form action="../actions/simpan_komentar.php" method="post" class="space-y-4" data-aos="zoom-in" data-aos-duration="500">
                     <input type="hidden" name="sppg_id" value="<?= $sppg_id ?>">
                     <textarea
                         name="komentar"
@@ -473,9 +494,9 @@ ORDER BY sr.tanggal DESC
         </div>
     </footer>
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-  <script>
-    AOS.init();
-  </script>
+    <script>
+        AOS.init();
+    </script>
 </body>
 
 </html>
