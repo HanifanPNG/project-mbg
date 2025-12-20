@@ -37,6 +37,9 @@
             <!--begin::Card Header-->
             <div class="card-header">
               <div class="card-tools float-end">
+                <button onclick="cetakLaporanLengkap()" class="btn btn-primary me-2">
+         <i class="bi bi-file-earmark-pdf"></i> Cetak Laporan Lengkap
+         </button>
                 <button onclick="cetakInformasiSaja()" class="btn btn-success">
                   <i class="bi bi-printer"></i> Cetak Informasi SPPG
                 </button>
@@ -93,7 +96,7 @@
                              </table>
                              <div class='d-flex justify-content-between align-items-center my-2'>
               <h4>Menu Harian</h4>
-              <button onclick='cetakMenuHarian()' class='btn btn-info text-white'>
+              <button onclick='cetakMenuHarian()' class='btn btn-success text-white'>
                   <i class='bi bi-calendar-event'></i> Cetak Menu Harian
               </button>
           </div> 
@@ -250,7 +253,7 @@
                 <!-- Komentar -->
                 <div class='d-flex justify-content-between align-items-center my-2  '>
                   <h4>Komentar & Rating</h4>
-                  <button onclick='cetakKomentar()' class='btn btn-secondary'>
+                  <button onclick='cetakKomentar()' class='btn btn-success'>
                     <i class='bi bi-printer'></i> Cetak Komentar
                   </button>
                 </div>
@@ -488,5 +491,115 @@
         jendelaCetak.print();
         jendelaCetak.close();
     }, 750);
+}
+
+function cetakLaporanLengkap() {
+    // 1. Mengambil area utama
+    var areaCetak = document.getElementById('areaCetak');
+    
+    // Mengambil semua tabel di dalam area tersebut
+    var daftarTabel = areaCetak.getElementsByTagName('table');
+
+    // Validasi dasar
+    if (daftarTabel.length < 1) {
+        alert("Tidak ada data yang bisa dicetak!");
+        return;
+    }
+
+    // 2. Menyusun Konten Laporan secara manual berdasarkan urutan di HTML Anda
+    // Indeks 0: Info SPPG, 1: Menu, 2: Sekolah, 3: Klaster 3B, 4: Komentar
+    var kontenLaporan = `
+        <div class="text-center">
+            <h2 class="mb-0">LAPORAN LENGKAP SPPG</h2>
+            <p style="font-size: 12px;">Dicetak pada: ${new Date().toLocaleString('id-ID')}</p>
+        </div>
+        <hr>
+        
+        <div class="section-box">
+            <h4>I. Informasi SPPG</h4>
+            ${daftarTabel[0] ? daftarTabel[0].outerHTML : '<p>Data tidak ditemukan</p>'}
+        </div>
+
+        <div class="page-break"></div>
+        <div class="section-box">
+            <h4>II. Menu Harian</h4>
+            ${daftarTabel[1] ? daftarTabel[1].outerHTML : '<p>Data tidak ditemukan</p>'}
+        </div>
+
+        <div class="page-break"></div>
+        <div class="section-box">
+            <h4>III. Daftar Penerima MBG (Sekolah)</h4>
+            ${daftarTabel[2] ? daftarTabel[2].outerHTML : '<p>Data tidak ditemukan</p>'}
+        </div>
+
+        <div class="section-box">
+            <h4>IV. Daftar Kelompok 3B (Ibu Hamil, Menyusui, Balita)</h4>
+            ${daftarTabel[3] ? daftarTabel[3].outerHTML : '<p>Data tidak ditemukan</p>'}
+        </div>
+
+        <div class="page-break"></div>
+        <div class="section-box">
+            <h4>V. Komentar & Rating</h4>
+            ${daftarTabel[4] ? daftarTabel[4].outerHTML : '<p>Data tidak ditemukan</p>'}
+        </div>
+    `;
+
+    // 3. Membuka Jendela Cetak
+    var jendelaCetak = window.open('', '_blank', 'height=900,width=1000');
+
+    jendelaCetak.document.write('<html><head><title>Laporan Lengkap SPPG</title>');
+    jendelaCetak.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">');
+    jendelaCetak.document.write('<style>');
+    jendelaCetak.document.write(`
+        body { 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+            padding: 30px; 
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+        }
+        .text-center { text-align: center; }
+        h4 { 
+            background-color: #f8f9fa !important;
+            padding: 8px;
+            border-bottom: 2px solid #333;
+            margin-top: 20px;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #dee2e6 !important; padding: 8px; text-align: left; }
+        th { background-color: #e9ecef !important; font-weight: bold; }
+        
+        /* Warna khusus untuk baris tanggal di Menu Harian */
+        .bg-green-100 { background-color: #d1e7dd !important; font-weight: bold; }
+
+        img { max-width: 100px; height: auto; border: 1px solid #ddd; padding: 2px; }
+
+        /* Pengaturan Halaman */
+        .page-break { page-break-before: always; }
+        
+        /* SEMBUNYIKAN ELEMEN YANG TIDAK PERLU */
+        .btn, .bi, i, .no-print { display: none !important; }
+        
+        /* Sembunyikan kolom AKSI (biasanya kolom terakhir di tabel 2, 3, 4) */
+        /* Tabel 0 (Info) biasanya cuma 2 kolom, jadi jangan sembunyikan kolom terakhirnya */
+        table:not(:first-of-type) td:last-child, 
+        table:not(:first-of-type) th:last-child { 
+            display: none !important; 
+        }
+    `);
+    jendelaCetak.document.write('</style></head><body>');
+    jendelaCetak.document.write(kontenLaporan);
+    jendelaCetak.document.write('</body></html>');
+
+    jendelaCetak.document.close();
+
+    // 4. Proses Cetak setelah delay (agar gambar & CSS termuat)
+    setTimeout(function() {
+        jendelaCetak.focus();
+        jendelaCetak.print();
+        jendelaCetak.close();
+    }, 1500); 
 }
 </script>
