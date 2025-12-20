@@ -3,201 +3,147 @@ $title = "MBG-KU";
 session_start();
 error_reporting(0);
 
-if ($_POST['btnLogin']) {
-          $tuser = $_POST['tuser'];
-          $tpass = $_POST['tpass'];
-          require_once "config.php";
-          $sql = "SELECT * FROM users WHERE username='$tuser'";
-          $hasil = $db->query($sql);
+$loginError = "";
 
-          if ($hasil->num_rows > 0) {
-            $data = $hasil->fetch_assoc();
+if (isset($_POST['btnLogin'])) {
+  $tuser = $_POST['tuser'];
+  $tpass = $_POST['tpass'];
+  require_once "config.php";
 
-            if (password_verify($tpass, $data['password'])) {
+  $sql = "SELECT * FROM users WHERE username='$tuser'";
+  $hasil = $db->query($sql);
 
-              // CEK LEVEL YANG BOLEH LOGIN
-              if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
-                die("Akun tidak diizinkan login");
-              }
+  if ($hasil->num_rows > 0) {
+    $data = $hasil->fetch_assoc();
 
-              // CEK SPPG UNTUK USER
-              if ($data['level'] == 'user' && empty($data['sppg_id'])) {
-                die("Akun belum terdaftar ke SPPG");
-              }
+    if (password_verify($tpass, $data['password'])) {
 
-              $_SESSION['isLogin'] = true;
-              $_SESSION['level']   = $data['level'];
-              $_SESSION['user']    = $data['username'];
-              $_SESSION['user_id'] = $data['id'];
-              $_SESSION['sppg_id'] = $data['sppg_id'];
+      if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
+        $loginError = "Akun tidak diizinkan login";
+      } else if ($data['level'] == 'user' && empty($data['sppg_id'])) {
+        $loginError = "Akun belum terdaftar ke SPPG";
+      } else {
+        $_SESSION['isLogin'] = true;
+        $_SESSION['level']   = $data['level'];
+        $_SESSION['user']    = $data['username'];
+        $_SESSION['user_id'] = $data['id'];
+        $_SESSION['sppg_id'] = $data['sppg_id'];
 
-              if ($data['level'] == 'admin') {
-                header("Location: Admin/");
-              } elseif($data['level']== 'user') {
-                header("Location: User/");
-              } elseif($data['level']== 'sppg'){
-                header("Location: SPPG/");
-              }
-              exit;
-            }
-          }
-
-          echo "<div class='alert alert-danger'>Username atau Password salah</div>";
+        if ($data['level'] == 'admin') {
+          header("Location: Admin/");
+        } elseif ($data['level'] == 'user') {
+          header("Location: User/");
+        } elseif ($data['level'] == 'sppg') {
+          header("Location: SPPG/");
         }
+        exit;
+      }
+    } else {
+      $loginError = "Username atau Password salah";
+    }
+  } else {
+    $loginError = "Username atau Password salah";
+  }
+}
 ?>
-<!doctype html>
-<html lang="en">
-<!--begin::Head-->
 
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <title>MBG-KU Login| Login Page</title>
-  <!--begin::Accessibility Meta Tags-->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#007bff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
-  <!--end::Accessibility Meta Tags-->
-  <!--begin::Primary Meta Tags-->
-  <meta name="title" content="AdminLTE 4 | Login Page" />
-  <meta name="author" content="ColorlibHQ" />
-  <meta
-    name="description"
-    content="AdminLTE is a Free Bootstrap 5 Admin Dashboard, 30 example pages using Vanilla JS. Fully accessible with WCAG 2.1 AA compliance." />
-  <meta
-    name="keywords"
-    content="bootstrap 5, bootstrap, bootstrap 5 admin dashboard, bootstrap 5 dashboard, bootstrap 5 charts, bootstrap 5 calendar, bootstrap 5 datepicker, bootstrap 5 tables, bootstrap 5 datatable, vanilla js datatable, colorlibhq, colorlibhq dashboard, colorlibhq admin dashboard, accessible admin panel, WCAG compliant" />
-  <!--end::Primary Meta Tags-->
-  <!--begin::Accessibility Features-->
-  <!-- Skip links will be dynamically added by accessibility.js -->
-  <meta name="supported-color-schemes" content="light dark" />
-  <link rel="preload" href="./assets/css/adminlte.css" as="style" />
-  <!--end::Accessibility Features-->
-  <!--begin::Fonts-->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@fontsource/source-sans-3@5.0.12/index.css"
-    integrity="sha256-tXJfXfp6Ewt1ilPzLDtQnJV4hclT9XuaZUKyUvmyr+Q="
-    crossorigin="anonymous"
-    media="print"
-    onload="this.media='all'" />
-  <!--end::Fonts-->
-  <!--begin::Third Party Plugin(OverlayScrollbars)-->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/styles/overlayscrollbars.min.css"
-    crossorigin="anonymous" />
-  <!--end::Third Party Plugin(OverlayScrollbars)-->
-  <!--begin::Third Party Plugin(Bootstrap Icons)-->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
-    crossorigin="anonymous" />
-  <!--end::Third Party Plugin(Bootstrap Icons)-->
-  <!--begin::Required Plugin(AdminLTE)-->
-  <link rel="stylesheet" href="./assets/css/adminlte.css" />
-  <!--end::Required Plugin(AdminLTE)-->
+  <meta charset="UTF-8">
+  <title><?= $title ?> | Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#22c55e',
+            secondary: '#3b82f6'
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<!--end::Head-->
-<!--begin::Body-->
 
-<body class="login-page bg-body-secondary">
-  <div class="login-box">
-    <div class="login-logo">
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
+
+    <!-- Logo / Title -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-extrabold text-gray-800"><?= $title ?></h1>
+      <p class="text-sm text-gray-500 mt-1">Sistem Pelayanan Makanan Bergizi</p>
     </div>
-    <!-- /.login-logo -->
-    <div class="card">
-      <div class="card-body login-card-body">
-        <div style="text-align: center;">
-          <h1 class="fw-bold"><?php echo $title ?></h1>
-        </div>
 
-        <form action="#" method="post">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Username" name="tuser" />
-            <div class="input-group-text"><span class="bi bi-person"></span></div>
-          </div>
-          <div class="input-group mb-3">
-            <input type="password" class="form-control" placeholder="Password" name="tpass" id="password" />
-            <div class="input-group-text"><span class="bi bi-eye-slash" id="togglePassword"></span></div>
-          </div>
-          <!--begin::Row-->
-          <div class="row">
-            <div>
-              <hr>
-              <p class="text-center">
-                Belum punya akun?
-                <a href="register.php">Daftar di sini</a>
-              </p>
-            </div>
-            <!-- /.col -->
-            <div class="col-4">
-              <div class="d-grid gap-2">
-                <input type="submit" value="Login" class="btn btn-primary" name="btnLogin">
-              </div>
-            </div>
-            <!-- /.col -->
-          </div>
-          <!--end::Row-->
-        </form>
-        <hr>
-        <div class="social-auth-links text-center mb-3 d-grid gap-2">
-          <p>Copyright by Gweh</p>
+    <!-- Error -->
+    <?php if (!empty($loginError)): ?>
+      <div class="mb-4 rounded-lg bg-red-100 border border-red-300 text-red-700 px-4 py-3 text-sm">
+        <?= $loginError ?>
+      </div>
+    <?php endif; ?>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+
+      <!-- Username -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+        <input type="text" name="tuser" required
+          class="w-full rounded-xl border border-gray-300 px-4 py-3
+          focus:ring-2 focus:ring-primary focus:border-primary transition">
+      </div>
+
+      <!-- Password -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <div class="relative">
+          <input type="password" name="tpass" id="password" required
+            class="w-full rounded-xl border border-gray-300 px-4 py-3 pr-12
+            focus:ring-2 focus:ring-primary focus:border-primary transition">
+          <button type="button" onclick="togglePassword()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+            👁
+          </button>
         </div>
       </div>
-      <!-- /.login-card-body -->
+
+      <!-- Login Button -->
+      <button type="submit" name="btnLogin"
+        class="w-full py-3 rounded-xl text-white font-semibold
+        bg-gradient-to-r from-green-500 to-blue-500
+        hover:opacity-90 hover:shadow-lg transition">
+        Login
+      </button>
+
+    </form>
+
+    <!-- Links -->
+    <div class="mt-6 text-center space-y-2 text-sm">
+      <p class="text-gray-600">
+        Belum punya akun?
+        <a href="register.php" class="text-primary font-semibold hover:underline">Daftar di sini</a>
+      </p>
     </div>
+
+    <!-- Footer -->
+    <div class="mt-8 text-center text-xs text-gray-400">
+      © <?= date('Y') ?> MBG-KU • Copyright by Gweh
+    </div>
+
   </div>
 
+  <script>
+    function togglePassword() {
+      const pass = document.getElementById('password');
+      pass.type = pass.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+
 </body>
-  <script>
-    const togglePassword = document.getElementById("togglePassword");
-  const password = document.getElementById("password");
-
-  togglePassword.addEventListener("click", function () {
-    const type = password.getAttribute("type") === "password" ? "text" : "password";
-    password.setAttribute("type", type);
-
-    // Ganti icon
-    this.classList.toggle("bi-eye");
-    this.classList.toggle("bi-eye-slash");
-  });
-  </script>
-  <!--begin::Third Party Plugin(OverlayScrollbars)-->
-  <script
-    src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js"
-    crossorigin="anonymous"></script>
-  <!--end::Third Party Plugin(OverlayScrollbars)--><!--begin::Required Plugin(popperjs for Bootstrap 5)-->
-  <script
-    src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-    crossorigin="anonymous"></script>
-  <!--end::Required Plugin(popperjs for Bootstrap 5)--><!--begin::Required Plugin(Bootstrap 5)-->
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.min.js"
-    crossorigin="anonymous"></script>
-  <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
-  <script src="./assets/js/adminlte.js"></script>
-  <!--end::Required Plugin(AdminLTE)--><!--begin::OverlayScrollbars Configure-->
-  <script>
-    const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
-    const Default = {
-      scrollbarTheme: 'os-theme-light',
-      scrollbarAutoHide: 'leave',
-      scrollbarClickScroll: true,
-    };
-    document.addEventListener('DOMContentLoaded', function() {
-      const sidebarWrapper = document.querySelector(SELECTOR_SIDEBAR_WRAPPER);
-      if (sidebarWrapper && OverlayScrollbarsGlobal?.OverlayScrollbars !== undefined) {
-        OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
-          scrollbars: {
-            theme: Default.scrollbarTheme,
-            autoHide: Default.scrollbarAutoHide,
-            clickScroll: Default.scrollbarClickScroll,
-          },
-        });
-      }
-    });
-  </script>
-<!--end::Body-->
-
 </html>

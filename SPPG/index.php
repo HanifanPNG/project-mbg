@@ -114,7 +114,11 @@ if (!$dataMenu) {
                         Lihat Data Menu
                     </a>
                 </div>
-
+                 <div>
+                    <div class="rounded-2xl overflow-hidden shadow-2xl border border-gray-100 transform hover:scale-[1.01] transition duration-500 ease-in-out">
+                        <img src="../assets/img/gpt1.png" alt="Makanan bergizi" class="w-full h-80 object-cover object-center hidden lg:flex">
+                    </div>
+                </div>
             </div>
         </section>
         <?php

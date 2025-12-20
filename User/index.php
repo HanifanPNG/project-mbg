@@ -103,7 +103,7 @@ if (($_POST["cari"])  && !empty($keyword)) {
 
                 <div>
                     <div class="rounded-2xl overflow-hidden shadow-2xl border border-gray-100 transform hover:scale-[1.01] transition duration-500 ease-in-out">
-                        <img src="../assets/img/hihi.png" alt="Makanan bergizi" class="w-full h-80 object-cover object-center hidden lg:flex">
+                        <img src="../assets/img/gpt.png" alt="Makanan bergizi" class="w-full h-80 object-cover object-center hidden lg:flex">
                     </div>
                 </div>
             </div>
