@@ -1,8 +1,10 @@
 <?php
+session_start();
 require_once "../config.php";
 require_once "../lib/db_helper.php";
 require_once "../lib/validation.php";
 require_once "../lib/csrf.php";
+csrf_token(); // generate CSRF token
 
 $idx = (int)($_GET['id'] ?? 0);
 $res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
@@ -11,6 +13,18 @@ $data = $res ? [$res->fetch_assoc()] : [];
 $sppg_id = $idx;
 if (isset($_POST["submit"])) {
     if (!csrf_verify()) die("Invalid CSRF");
+
+    // VALIDASI HAK AKSES
+    $userLevel = $_SESSION['level'] ?? '';
+    if ($userLevel === 'user') {
+        $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
+        if ($userSppgId !== $sppg_id) {
+            die("Tidak diizinkan: Anda hanya bisa memberi rating pada SPPG yang Anda terima.");
+        }
+    } elseif ($userLevel !== 'admin' && $userLevel !== 'sppg') {
+        die("Akses ditolak");
+    }
+
     $nama = v_string($_POST["nama"] ?? '', 100);
     $komentar = v_string($_POST["komentar"] ?? '', 2000);
     $rating = v_rating($_POST["rating"] ?? '0');
@@ -381,17 +395,23 @@ ORDER BY sr.tanggal DESC
             <?php
                 $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
                 $targetSppgId = (int)$sppg_id;
+                $userLevel = $_SESSION['level'] ?? '';
+                $canComment = false;
+                if ($userLevel === 'user') {
+                    // User biasa: hanya boleh komentar SPPG yang dinaungi
+                    $canComment = ($userSppgId === $targetSppgId);
+                } elseif ($userLevel === 'admin' || $userLevel === 'sppg') {
+                    // Admin/SPPG: boleh komentar semua SPPG
+                    $canComment = true;
+                }
             ?>
-            <?php if (
-                isset($_SESSION['level']) &&
-                $_SESSION['level'] === 'user' &&
-                $userSppgId !== $targetSppgId
-            ): ?>
+            <?php if (!$canComment): ?>
                 <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg">
                     Anda hanya dapat memberi ulasan pada SPPG yang anda terima.
                 </div>
             <?php else: ?>
                 <form action="../actions/simpan_komentar.php" method="post" class="space-y-4" data-aos="zoom-in" data-aos-duration="500">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="sppg_id" value="<?= $sppg_id ?>">
                     <textarea
                         name="komentar"

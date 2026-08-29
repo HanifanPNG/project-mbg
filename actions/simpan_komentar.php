@@ -18,12 +18,17 @@ $komentar = v_string($_POST['komentar'] ?? '', 2000);
 $rating   = v_rating($_POST['rating'] ?? '0');
 $user_id  = (int)($_SESSION['user_id'] ?? 0);
 
-// VALIDASI HAK AKSES: user hanya boleh rating SPPG yang dinaungi
-if (!empty($_SESSION['sppg_id'])) {
-    $userSppgId = (int)$_SESSION['sppg_id'];
+// VALIDASI HAK AKSES
+$userLevel = $_SESSION['level'] ?? '';
+if ($userLevel === 'user') {
+    // User biasa: hanya boleh rating SPPG yang dinaungi
+    $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
     if ($userSppgId !== $sppg_id) {
         die("Tidak diizinkan: Anda hanya bisa memberi rating pada SPPG yang Anda terima.");
     }
+} elseif ($userLevel !== 'admin' && $userLevel !== 'sppg') {
+    // User dengan level tidak dikenal
+    die("Akses ditolak");
 }
 
 // SIMPAN KOMENTAR
