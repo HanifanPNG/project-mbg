@@ -1,14 +1,21 @@
 <?php
+session_start();
+$username = $_SESSION['user'] ?? 'Pengunjung';
+
+if (($_SESSION['isLogin'] ?? false) == false or ($_SESSION['level'] ?? '') != "user") {
+    header("location:../logout.php");
+    exit;
+}
+
 require_once "../config.php";
 require_once "../lib/db_helper.php";
 require_once "../lib/validation.php";
 
-echo "";
 $keyword = v_string($_POST['keyword'] ?? '', 255);
 $sql = "SELECT * FROM sppg";
 $pesan = "";
 
-if ($_POST["cari"]) {
+if (isset($_POST["cari"])) {
     $sql = "SELECT * FROM sppg WHERE nama_sppg LIKE ?";
     $keywordParam = "%$keyword%";
     $stmt = $db->prepare($sql);
@@ -18,7 +25,7 @@ if ($_POST["cari"]) {
     $data = $result;
     $jumlah_data = $data->num_rows;
     if ($jumlah_data > 0) {
-        $pesan = "<p style='color:green;margin-top:8px;'> SPPG dengan kata kunci <b>$keyword</b> ";
+        $pesan = "<p style='color:green;margin-top:8px;'> SPPG dengan kata kunci <b>$keyword</b> </p>";
     }
 } else {
     $data = db_query($sql, "");
