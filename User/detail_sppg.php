@@ -1,24 +1,31 @@
 <?php
-session_start();
-
 require_once "../config.php";
+require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
+require_once "../lib/csrf.php";
 
-$idx = $_GET['id'];
-$sql = "select * from sppg where id='$idx'";
-$data = $db->query($sql);
+$idx = (int)($_GET['id'] ?? 0);
+$res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
+$data = $res ? [$res->fetch_assoc()] : [];
 
-$sppg_id = $_GET['id'];
+$sppg_id = $idx;
 if (isset($_POST["submit"])) {
-    $nama = $_POST["nama"];
-    $komentar = $_POST["komentar"];
-    $rating = $_POST["rating"];
+    if (!csrf_verify()) die("Invalid CSRF");
+    $nama = v_string($_POST["nama"] ?? '', 100);
+    $komentar = v_string($_POST["komentar"] ?? '', 2000);
+    $rating = v_rating($_POST["rating"] ?? '0');
 
-    $sql = "insert into sppg_rating set sppg_id='$sppg_id', nama='$nama', komentar='$komentar', rating='$rating'";
-    $hasil = $db->query($sql);
+    $ok = db_exec(
+        "INSERT INTO sppg_rating (sppg_id, nama, komentar, rating) VALUES (?, ?, ?, ?)",
+        "issi",
+        $sppg_id, $nama, $komentar, $rating
+    );
 
-    $_SESSION['success'] = "Komentar berhasil ditambahkan!";
-    header("Location: detail_sppg.php?id=$sppg_id");
-    exit;
+    if ($ok) {
+        $_SESSION['success'] = "Komentar berhasil ditambahkan!";
+        header("Location: detail_sppg.php?id=$sppg_id");
+        exit;
+    }
 }
 ?>
 

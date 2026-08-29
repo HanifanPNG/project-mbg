@@ -25,10 +25,12 @@
     <div class="bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-200 p-8">
 
       <?php
-      $sppg_id = $_GET['id'] ?? '';
+      require_once "../config.php";
+      require_once "../lib/db_helper.php";
+      $sppg_id = (int)($_GET['id'] ?? 0);
       date_default_timezone_set('Asia/Jakarta');
       if (isset($_POST['simpanMenu'])) {
-        $hari = $_POST['hari'];
+        $hari = (int)($_POST['hari'] ?? 0);
         $nama_menu = $_POST['nama_menu'];
         $tanggal = $_POST['tanggal'];
         $deskripsi = $_POST['deskripsi_menu'];
@@ -37,18 +39,20 @@
 
         move_uploaded_file($tmp, "../uploads/" . $image);
 
-        require_once "../config.php";
         $waktu = date("Y-m-d H:i:s");
-        $sql = "INSERT INTO menu_sppg 
-                  (sppg_id, hari, nama_menu, deskripsi_menu, image, waktu, tanggal)
-                  VALUES ('$sppg_id','$hari','$nama_menu','$deskripsi','$image', '$waktu','$tanggal')";
-        $db->query($sql);
+        $ok = db_exec(
+            "INSERT INTO menu_sppg (sppg_id, hari, nama_menu, deskripsi_menu, image, waktu, tanggal) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "iisssss",
+            $sppg_id, $hari, $nama_menu, $deskripsi, $image, $waktu, $tanggal
+        );
 
-        echo "
-          <div class='mb-6 flex items-center gap-3 rounded-xl bg-green-50 px-5 py-4 text-green-700 border border-green-200'>
-            <span class='text-xl'>✅</span>
-            <span class='font-medium'>Menu berhasil ditambahkan</span>
-          </div>";
+        if ($ok) {
+          echo "
+            <div class='mb-6 flex items-center gap-3 rounded-xl bg-green-50 px-5 py-4 text-green-700 border border-green-200'>
+              <span class='text-xl'>✅</span>
+              <span class='font-medium'>Menu berhasil ditambahkan</span>
+            </div>";
+        }
       }
       ?>
 

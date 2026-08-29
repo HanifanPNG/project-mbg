@@ -1,27 +1,28 @@
 <?php
-error_reporting(0);
-session_start();
-$username = $_SESSION['user'] ?? 'Pengunjung';
-
-if ($_SESSION['isLogin'] == false or $_SESSION['level'] != "user") {
-    header("location:../logout.php");
-}
-
 require_once "../config.php";
-$keyword = $_POST['keyword'] ?? '';
-$sql = "select * from sppg";
+require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
+
+echo "";
+$keyword = v_string($_POST['keyword'] ?? '', 255);
+$sql = "SELECT * FROM sppg";
 $pesan = "";
 
 if ($_POST["cari"]) {
-    $sql = "select * from sppg where nama_sppg like'%$keyword%'";
-}
-$data = $db->query($sql);
-$jumlah_data = $data->num_rows;
-
-if (($_POST["cari"])  && !empty($keyword)) {
+    $sql = "SELECT * FROM sppg WHERE nama_sppg LIKE ?";
+    $keywordParam = "%$keyword%";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param("s", $keywordParam);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $data = $result;
+    $jumlah_data = $data->num_rows;
     if ($jumlah_data > 0) {
         $pesan = "<p style='color:green;margin-top:8px;'> SPPG dengan kata kunci <b>$keyword</b> ";
     }
+} else {
+    $data = db_query($sql, "");
+    $jumlah_data = $data->num_rows;
 }
 ?>
 <!doctype html>

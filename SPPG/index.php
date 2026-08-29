@@ -1,33 +1,36 @@
 <?php
 session_start();
 require_once "../config.php";
+require_once "../lib/db_helper.php";
 
 $username = $_SESSION['user'] ?? 'SPPG';
 
 if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
     die("Akses ditolak");
 }
-$sppg_id = $_SESSION['sppg_id'];
+$sppg_id = (int)$_SESSION['sppg_id'];
 
 // minggu aktif (contoh: 202502)
 $minggu = isset($_GET['minggu'])
     ? (int) $_GET['minggu']
     : (int) date('oW');
 
-$sqlMenu = "
-SELECT *
-FROM menu_sppg
-WHERE sppg_id = '$sppg_id'
-AND YEARWEEK(tanggal, 1) = $minggu
-ORDER BY tanggal ASC
-";
-
-$dataMenu = $db->query($sqlMenu);
+$dataMenu = db_query(
+    "SELECT * FROM menu_sppg WHERE sppg_id = ? AND YEARWEEK(tanggal, 1) = ? ORDER BY tanggal ASC",
+    "ii",
+    $sppg_id, $minggu
+);
 
 if (!$dataMenu) {
-    die("SQL Error: " . $db->error);
+    die("SQL Error");
 }
 
+$qMingguR = db_query(
+    "SELECT YEARWEEK(tanggal,1) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai FROM menu_sppg WHERE sppg_id = ? GROUP BY YEARWEEK(tanggal,1) ORDER BY minggu DESC",
+    "i",
+    $sppg_id
+);
+$qMinggu = $qMingguR;
 
 ?>
 

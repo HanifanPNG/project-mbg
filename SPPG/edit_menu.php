@@ -1,5 +1,7 @@
 <?php
 error_reporting(0);
+require_once "../config.php";
+require_once "../lib/db_helper.php";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,63 +34,40 @@ error_reporting(0);
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div class="lg:col-span-1">
                             <?php
-                            $idx = $_GET['id'];
-                            $sppg_id = $_GET['sppg_id'];
-                            require_once "../config.php";
+                            $idx = (int)($_GET['id'] ?? 0);
+                            $sppg_id = (int)($_GET['sppg_id'] ?? 0);
 
-                            $sql = "select * from menu_sppg WHERE id='$idx'";
-                            $data = $db->query($sql);
-
-                            // $sen = $sel = $rab = $kam = $jum = ""; 
-
-                            foreach ($data as $d) {
+                            $res = db_query("SELECT * FROM menu_sppg WHERE id=?", "i", $idx);
+                            $d = $res ? $res->fetch_assoc() : null;
+                            $hari = $sen = $sel = $rab = $kam = $jum = "";
+                            if ($d) {
                                 switch ($d['hari']) {
-                                    case '1':
-                                        $hari = "Senin";
-                                        $sen = "selected";
-                                        break;
-                                    case '2':
-                                        $hari = "Selasa";
-                                        $sel = "selected";
-                                        break;
-                                    case '3':
-                                        $hari = "Rabu";
-                                        $rab = "selected";
-                                        break;
-                                    case '4':
-                                        $hari = "Kamis";
-                                        $kam = "selected";
-                                        break;
-                                    case '5':
-                                        $hari = "Jum'at";
-                                        $jum = "selected";
-                                        break;
+                                    case '1': $hari = "Senin"; $sen = "selected"; break;
+                                    case '2': $hari = "Selasa"; $sel = "selected"; break;
+                                    case '3': $hari = "Rabu"; $rab = "selected"; break;
+                                    case '4': $hari = "Kamis"; $kam = "selected"; break;
+                                    case '5': $hari = "Jum'at"; $jum = "selected"; break;
                                 }
                             }
 
                             if ($_POST['simpanEdit']) {
-                                $hari = $_POST['hari'];
+                                $hari_val = (int)($_POST['hari'] ?? 0);
                                 $nama_menu = $_POST['nama_menu'];
                                 $deskripsi_menu = $_POST['deskripsi_menu'];
-
 
                                 if (!empty($_FILES['image']['name'])) {
                                     $image = $_FILES['image']['name'];
                                     move_uploaded_file($_FILES['image']['tmp_name'], "../uploads/" . $image);
                                 } else {
-                                    $image = $d['image'];
+                                    $image = $d['image'] ?? '';
                                 }
 
-
-                                $sql = "UPDATE menu_sppg SET
-                                    hari='$hari',
-                                    nama_menu='$nama_menu',
-                                    deskripsi_menu='$deskripsi_menu',
-                                    image='$image'
-                                    WHERE id='$idx'";
-
-                                $hasil = $db->query($sql);
-                                if ($hasil) {
+                                $ok = db_exec(
+                                    "UPDATE menu_sppg SET hari=?, nama_menu=?, deskripsi_menu=?, image=? WHERE id=?",
+                                    "isssi",
+                                    $hari_val, $nama_menu, $deskripsi_menu, $image, $idx
+                                );
+                                if ($ok) {
                                     echo "<script>window.location='index.php?id=$idx';</script>";
                                 }
                             }
