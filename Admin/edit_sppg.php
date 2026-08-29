@@ -83,7 +83,7 @@
                         $jam_tutup = $d['jam_tutup'];
 
                         // Handle edit SPPG
-                        if ($_POST['simpanEdit'] && csrf_verify()) {
+                        if (isset($_POST['simpanEdit']) && csrf_verify()) {
                             $nama_sppg = v_string($_POST['nama_sppg'] ?? '', 255);
                             $alamat = v_string($_POST['alamat'] ?? '', 500);
                             $gmaps = v_string($_POST['gmaps'] ?? '', 500);
@@ -111,7 +111,7 @@
                         }
 
                         // Handle reset password SPPG
-                        if ($_POST['resetPassword'] && csrf_verify()) {
+                        if (isset($_POST['resetPassword']) && csrf_verify()) {
                             $new_pass = v_string($_POST['new_password'] ?? '', 255);
                             $pass_hash = password_hash($new_pass, PASSWORD_DEFAULT);
                             $ok = db_exec("UPDATE users SET password=? WHERE sppg_id=? AND level='sppg'", "si", $pass_hash, $idx);
@@ -123,7 +123,7 @@
                         }
 
                         // Handle create akun SPPG
-                        if ($_POST['createAccount'] && csrf_verify()) {
+                        if (isset($_POST['createAccount']) && csrf_verify()) {
                             $new_username = v_string($_POST['new_username'] ?? '', 50);
                             $new_password = v_string($_POST['new_password_account'] ?? '', 255);
                             $pass_hash = password_hash($new_password, PASSWORD_DEFAULT);

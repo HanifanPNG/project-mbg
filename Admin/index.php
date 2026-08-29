@@ -2,6 +2,7 @@
 error_reporting(0);
 date_default_timezone_set("asia/jakarta");
 session_start();
+require_once "../config.php";
 
 if($_SESSION['isLogin']==false or $_SESSION['level']!="admin"){
   header("location:../logout.php");
