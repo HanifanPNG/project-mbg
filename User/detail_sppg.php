@@ -378,10 +378,14 @@ ORDER BY sr.tanggal DESC
             </div>
             <h3 class="text-xl font-semibold text-gray-800 mb-4 pt-4 border-t">Beri Ulasan Anda</h3>
 
+            <?php
+                $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
+                $targetSppgId = (int)$sppg_id;
+            ?>
             <?php if (
                 isset($_SESSION['level']) &&
                 $_SESSION['level'] === 'user' &&
-                $_SESSION['sppg_id'] != $sppg_id
+                $userSppgId !== $targetSppgId
             ): ?>
                 <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg">
                     Anda hanya dapat memberi ulasan pada SPPG yang anda terima.

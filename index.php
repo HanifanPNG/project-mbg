@@ -1,7 +1,6 @@
 <?php
 require_once "lib/error_handler.php";
 require_once "lib/csrf.php";
-require_once "lib/rate_limit.php";
 require_once "lib/validation.php";
 
 setup_error_handling(true);
@@ -24,13 +23,7 @@ csrf_token(); // generate token
 $title = "MBG-KU";
 $loginError = "";
 
-// Rate limit by IP
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-if (!rate_limit("login_$ip")) {
-    $loginError = "Terlalu banyak percobaan. Silakan coba lagi dalam 5 menit.";
-}
-
-if (isset($_POST['btnLogin']) && empty($loginError)) {
+if (isset($_POST['btnLogin'])) {
     if (!csrf_verify()) {
         $loginError = "Invalid CSRF token";
     } else {

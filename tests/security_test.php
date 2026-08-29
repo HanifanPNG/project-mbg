@@ -3,7 +3,6 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../lib/db_helper.php';
 require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/csrf.php';
-require_once __DIR__ . '/../lib/rate_limit.php';
 
 echo "=== Security Test Suite ===\n\n";
 
@@ -50,17 +49,6 @@ function test_validation() {
     echo "PASS: Validation helpers work\n";
 }
 
-function test_rate_limit() {
-    $key = "test_ratelimit_" . uniqid();
-    // first 5 should pass
-    for ($i=0;$i<5;$i++) {
-        assert(rate_limit($key, 5, 60), "Attempt $i should pass");
-    }
-    // 6th should fail
-    assert(rate_limit($key, 5, 60) === false, "6th attempt should fail");
-    echo "PASS: Rate limiting works\n";
-}
-
 function test_password_reset_flow() {
     // Can't fully test without email, but can verify token table exists
     $res = db_query("SELECT 1 FROM password_resets LIMIT 1", "");
@@ -74,7 +62,6 @@ try {
     test_xss_escape();
     test_csrf();
     test_validation();
-    test_rate_limit();
     test_password_reset_flow();
     echo "\n=== ALL SECURITY TESTS PASSED ===\n";
 } catch (AssertionError $e) {
