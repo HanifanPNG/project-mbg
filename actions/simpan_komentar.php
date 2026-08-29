@@ -1,30 +1,29 @@
 <?php
 session_start();
-require "../config.php";
+require_once "../config.php";
+require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
+require_once "../lib/csrf.php";
 
 // WAJIB LOGIN
 if (!isset($_SESSION['isLogin'])) {
-  die("Akses ditolak");
+    die("Akses ditolak");
 }
 
+if (!csrf_verify()) die("Invalid CSRF");
+
 // AMBIL DATA
-$sppg_id  = $_POST['sppg_id'];
-$komentar = htmlspecialchars($_POST['komentar']);
-$rating   = (int)$_POST['rating'];
-
-// VALIDASI HAK AKSES
-
+$sppg_id  = (int)($_POST['sppg_id'] ?? 0);
+$komentar = v_string($_POST['komentar'] ?? '', 2000);
+$rating   = v_rating($_POST['rating'] ?? '0');
+$user_id  = (int)($_SESSION['user_id'] ?? 0);
 
 // SIMPAN KOMENTAR
-$db->query("
-  INSERT INTO sppg_rating (user_id, sppg_id, komentar, rating)
-  VALUES (
-    '{$_SESSION['user_id']}',
-    '$sppg_id',
-    '$komentar',
-    '$rating'
-  )
-");
+$ok = db_exec(
+    "INSERT INTO sppg_rating (user_id, sppg_id, komentar, rating) VALUES (?, ?, ?, ?)",
+    "iisi",
+    $user_id, $sppg_id, $komentar, $rating
+);
 
 // REDIRECT (ANTI DOUBLE SUBMIT)
 header("Location: ../User/detail_sppg.php?id=$sppg_id");
