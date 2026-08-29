@@ -1,4 +1,4 @@
-      <main class="app-main">
+<main class="app-main">
         <!--begin::App Content Header-->
         <div class="app-content-header">
           <!--begin::Container-->
@@ -54,63 +54,107 @@
                       <!--begin::Col-->
                       <!--end::Col-->
                       <!--begin::Col-->
-<?php
+                      <?php
                        require_once "../lib/db_helper.php";
-                       if ($_POST['simpan']) {
-                         $nama_sppg = $_POST['nama_sppg'];
-                         $alamat = $_POST['alamat'];
-                         $gmaps= $_POST['gmaps'];
-                         $kota = $_POST['kota'];
-                         $jam_buka = $_POST['jam_buka'];
-                         $jam_tutup = $_POST['jam_tutup'];
+                       require_once "../lib/validation.php";
+                       require_once "../lib/csrf.php";
+                       csrf_token();
+
+                       $nama_sppg = $alamat = $gmaps = $kota = $jam_buka = $jam_tutup = "";
+                       $sppg_username = $sppg_password = "";
+                       if ($_POST['simpan'] && csrf_verify()) {
+                         $nama_sppg = v_string($_POST['nama_sppg'] ?? '', 255);
+                         $alamat = v_string($_POST['alamat'] ?? '', 500);
+                         $gmaps = v_string($_POST['gmaps'] ?? '', 500);
+                         $kota = v_string($_POST['kota'] ?? '', 100);
+                         $jam_buka = v_string($_POST['jam_buka'] ?? '', 10);
+                         $jam_tutup = v_string($_POST['jam_tutup'] ?? '', 10);
+                         $sppg_username = v_string($_POST['sppg_username'] ?? '', 50);
+                         $sppg_password = $_POST['sppg_password'] ?? '';
 
                          $waktu = date("Y-m-d H:i:s");
-                         $ok = db_exec(
+                         
+                         // Start transaction-like behavior
+                         $sppg_ok = db_exec(
                              "INSERT INTO sppg (nama_sppg, alamat, gmaps, kota, waktu, jam_buka, jam_tutup) VALUES (?, ?, ?, ?, ?, ?, ?)",
                              "sssssss",
                              $nama_sppg, $alamat, $gmaps, $kota, $waktu, $jam_buka, $jam_tutup
                          );
-                         if ($ok) {
-                           echo "<div class='alert alert-success'>SPPG Berhasil Disimpan✅ <br>
-                           <a href='./?p=sppg'>Lihat Data</a></div>";
+                         
+                         if ($sppg_ok) {
+                             $sppg_id = $db->insert_id;
+                             
+                             // Create SPPG login account if username provided
+                             if (!empty($sppg_username)) {
+                                 $pass_hash = password_hash($sppg_password, PASSWORD_DEFAULT);
+                                 $user_ok = db_exec(
+                                     "INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)",
+                                     "ssi",
+                                     $sppg_username, $pass_hash, $sppg_id
+                                 );
+                                 if ($user_ok) {
+                                     echo "<div class='alert alert-success'>SPPG & Akun Login Berhasil Disimpan✅ <br>
+                                     <a href='./?p=sppg'>Lihat Data</a></div>";
+                                 } else {
+                                     echo "<div class='alert alert-warning'>SPPG Berhasil Disimpan✅ tapi gagal buat akun login. <br>
+                                     <a href='./?p=sppg'>Lihat Data</a></div>";
+                                 }
+                             } else {
+                                 echo "<div class='alert alert-success'>SPPG Berhasil Disimpan✅ <br>
+                                 <a href='./?p=sppg'>Lihat Data</a></div>";
+                             }
+                         } else {
+                             echo "<div class='alert alert-danger'>Gagal menyimpan SPPG</div>";
                          }
                        }
                        ?>
 
                       <form action="#" method="post">
+                        <?= csrf_field() ?>
                         <table>
                           <tr>
                             <td>Nama SPPG</td>
-                            <td><input type="text" name="nama_sppg" class="form-control" value="<?= $nama_sppg ?>"></td>
+                            <td><input type="text" name="nama_sppg" class="form-control" value="<?= e($nama_sppg) ?>" required></td>
                           </tr>
                           <tr>
                             <td valign="top">Alamat</td>
-                            <td><textarea name="alamat" class="form-control" style="width: 200px;"><?= $alamat ?></textarea></td>
+                            <td><textarea name="alamat" class="form-control" style="width: 200px;" required><?= e($alamat) ?></textarea></td>
                          </tr>
-                          <tr>
+                         <tr>
                             <td>Link Google Maps</td>
                             <td>
-                              <input type="text" name="gmaps" class="form-control" placeholder="Masukkan link Google Maps">
+                              <input type="text" name="gmaps" class="form-control" placeholder="Masukkan link Google Maps" value="<?= e($gmaps) ?>">
                             </td>
                           </tr>
                           <tr>
                             <td valign="top">Kabupaten</td>
-                            <td><select name="kota" class="form-control">
-                                <option>--- pilih kabupaten ---</option>
-                                <option value="Purbalingga">Purbalingga</option>
+                            <td><select name="kota" class="form-control" required>
+                                <option value="">--- pilih kabupaten ---</option>
+                                <option value="Purbalingga" <?= $kota == 'Purbalingga' ? 'selected' : '' ?>>Purbalingga</option>
                               </select></td>
                           </tr>
                           <tr>
                             <td>Jam Buka</td>
                             <td>
-                              <input type="time" name="jam_buka" class="form-control" value="<?= $jam_buka ?>">
+                              <input type="time" name="jam_buka" class="form-control" value="<?= e($jam_buka) ?>" required>
                             </td>
                           </tr>
                           <tr>
                             <td>Jam Tutup</td>
                             <td>
-                              <input type="time" name="jam_tutup" class="form-control" value="<?= $jam_tutup ?>">
+                              <input type="time" name="jam_tutup" class="form-control" value="<?= e($jam_tutup) ?>" required>
                             </td>
+                          </tr>
+                          <tr>
+                            <td colspan="2"><hr><strong>Akun Login SPPG (Opsional)</strong></td>
+                          </tr>
+                          <tr>
+                            <td>Username SPPG</td>
+                            <td><input type="text" name="sppg_username" class="form-control" value="<?= e($sppg_username) ?>" placeholder="Isi untuk buat akun login SPPG"></td>
+                          </tr>
+                          <tr>
+                            <td>Password SPPG</td>
+                            <td><input type="password" name="sppg_password" class="form-control" placeholder="Minimal 8 karakter" minlength="8"></td>
                           </tr>
                           <tr>
                             <td></td>

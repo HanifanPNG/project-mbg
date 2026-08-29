@@ -1,27 +1,39 @@
 <?php
 require_once "../config.php";
+require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
 
-$keyword = $_POST['keyword'] ?? '';
+$keyword = v_string($_POST['keyword'] ?? '', 255);
 
-$sql = "select * from sppg";
-$pesan = "";
-  
-if ($_POST["tombol-cari"]) {
-      $sql = "select * from sppg where nama_sppg like'%$keyword%'";
-    }
+$sql = "SELECT sppg.*, u.username as sppg_username 
+        FROM sppg 
+        LEFT JOIN users u ON u.sppg_id = sppg.id AND u.level = 'sppg'";
+$params = [];
+$types = "";
 
-$data = $db->query($sql);
+if (isset($_POST["tombol-cari"]) && !empty($keyword)) {
+    $sql .= " WHERE sppg.nama_sppg LIKE ?";
+    $params[] = "%$keyword%";
+    $types .= "s";
+}
+
+$stmt = $db->prepare($sql);
+if ($params) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$data = $stmt->get_result();
 $jumlah_data = $data->num_rows;
 
-if (($_POST["tombol-cari"])  && !empty($keyword)) {
-  if ($jumlah_data > 0) {
-    $pesan = "<p style='color:green;margin-top:8px;'>✅ Data dengan kata kunci <b>$keyword</b> ";
-  } else {
-    $pesan = "<p style='color:red;margin-top:8px;'>❌ Data dengan kata kunci <b>$keyword</b>.</p>";
-  }
+$pesan = "";
+if (isset($_POST["tombol-cari"]) && !empty($keyword)) {
+    if ($jumlah_data > 0) {
+        $pesan = "<p style='color:green;margin-top:8px;'>✅ Data dengan kata kunci <b>" . e($keyword) . "</b> </p>";
+    } else {
+        $pesan = "<p style='color:red;margin-top:8px;'>❌ Data dengan kata kunci <b>" . e($keyword) . "</b>.</p>";
+    }
 }
 ?>
-
 <main class="app-main">
   <div class="app-content-header">
     <div class="container-fluid">
@@ -68,7 +80,7 @@ if (($_POST["tombol-cari"])  && !empty($keyword)) {
                             </a>
                           </td>
                           <td width="8"></td>
-                          <td><input type="text" placeholder="Masukan kata kunci..." class="form-control w-100" name="keyword" style="width: 200px;" value="<?= $keyword ?>"></td>
+                          <td><input type="text" placeholder="Masukan kata kunci..." class="form-control w-100" name="keyword" style="width: 200px;" value="<?= e($keyword) ?>"></td>
                           <td><input type="submit" value="cari" name="tombol-cari"></td>
                         </tr>
                       </table>
@@ -86,6 +98,7 @@ if (($_POST["tombol-cari"])  && !empty($keyword)) {
                             <th>Kabupaten</th>
                             <th>Jam Buka</th>
                             <th>Jam Tutup</th>
+                            <th>Akun Login</th>
                             <th>Aksi</th>
                           </tr>
                         </thead>
@@ -95,30 +108,41 @@ if (($_POST["tombol-cari"])  && !empty($keyword)) {
                           if ($jumlah_data > 0) {
                             foreach ($data as $d) {
                               $nomor++;
+                              $sppg_username = $d['sppg_username'] ?? '';
+                              if ($sppg_username) {
+                                  $akun_info = "<span class='badge bg-success'>" . e($sppg_username) . "</span>
+                                  <a href='./?p=edit_sppg&id=" . $d['id'] . "' class='btn btn-xs btn-warning mt-1' title='Reset Password'>
+                                    <i class='bi bi-key'></i> Reset Password
+                                  </a>";
+                              } else {
+                                  $akun_info = "<span class='badge bg-warning text-dark'>Belum ada akun</span>
+                                  <a href='./?p=edit_sppg&id=" . $d['id'] . "' class='btn btn-xs btn-success mt-1' title='Buat Akun SPPG'>
+                                    <i class='bi bi-person-plus'></i> Buat Akun
+                                  </a>";
+                              }
                               echo "<tr>
                                       <td>$nomor</td>
-                                      <td>$d[nama_sppg]</td>
-                                      <td>$d[alamat]</td>
+                                      <td>" . e($d['nama_sppg']) . "</td>
+                                      <td>" . e($d['alamat']) . "</td>
                                       <td>
-                                        <a href='$d[gmaps]' target='_blank' class='btn btn-sm btn-primary'>
+                                        <a href='" . e($d['gmaps']) . "' target='_blank' class='btn btn-sm btn-primary'>
                                           Lihat Lokasi
                                         </a>
                                       </td>
-                                      <td>$d[kota]</td>
-                                      <td>$d[jam_buka]</td>
-                                      <td>$d[jam_tutup]</td>
+                                      <td>" . e($d['kota']) . "</td>
+                                      <td>" . e($d['jam_buka']) . "</td>
+                                      <td>" . e($d['jam_tutup']) . "</td>
+                                      <td>$akun_info</td>
                                       <td>
-                                        <a href='./?p=detail_sppg&id=$d[id]' class='btn btn-xs btn-info'><i class='bi bi-eye'></i></a>
-                                        <a href='./?p=edit_sppg&id=$d[id]' class='btn btn-xs btn-warning'><i class='bi bi-pencil'></i></a>
-                                        <a href='./?p=hapus_sppg&id=$d[id]' class='btn btn-xs btn-danger' onclick=\"return confirm('apakah data akan dihapus?')\"><i class='bi bi-trash3'></i></a>
+                                        <a href='./?p=detail_sppg&id=" . $d['id'] . "' class='btn btn-xs btn-info'><i class='bi bi-eye'></i></a>
+                                        <a href='./?p=edit_sppg&id=" . $d['id'] . "' class='btn btn-xs btn-warning'><i class='bi bi-pencil'></i></a>
+                                        <a href='./?p=hapus_sppg&id=" . $d['id'] . "' class='btn btn-xs btn-danger' onclick=\"return confirm('apakah data akan dihapus?')\"><i class='bi bi-trash3'></i></a>
                                       </td>
                                     </tr>";
                             }
                           } else {
-                            echo "<tr><td colspan='6' style='text-align:center;color:gray;'>Tidak ada data yang sesuai</td></tr>";
+                            echo "<tr><td colspan='8' style='text-align:center;color:gray;'>Tidak ada data yang sesuai</td></tr>";
                           }
-
-
                           ?>
                         </tbody>
                       </table>

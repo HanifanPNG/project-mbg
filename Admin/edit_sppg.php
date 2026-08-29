@@ -1,4 +1,4 @@
-      <main class="app-main">
+<main class="app-main">
         <!--begin::App Content Header-->
         <div class="app-content-header">
           <!--begin::Container-->
@@ -7,7 +7,7 @@
             <div class="row">
               <!--begin::Col-->
               <div class="col-sm-6">
-                <h3 class="mb-0"></h3>
+                <h3 class="mb-0">Edit SPPG</h3>
               </div>
               <!--end::Col-->
               <!--begin::Col-->
@@ -55,75 +55,178 @@
                       <!--begin::Col-->
                       <!--end::Col-->
                       <div class="col-lg-6">
-<?php
-                           require_once "../lib/db_helper.php";
-                           $idx = (int)($_GET['id'] ?? 0);
+                        <?php
+                        require_once "../lib/db_helper.php";
+                        require_once "../lib/validation.php";
+                        require_once "../lib/csrf.php";
+                        csrf_token();
 
-                           $res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
-                           $data = $res ? $res->fetch_assoc() : null;
+                        $idx = (int)($_GET['id'] ?? 0);
 
-                           // Jika tombol simpan ditekan
-                           if ($data && $_POST['simpanEdit']) {
-                               $nama_sppg = $_POST['nama_sppg'];
-                               $alamat = $_POST['alamat'];
-                               $gmaps = $_POST['gmaps'];
-                               $kota = $_POST['kota'];
-                               $jam_buka = $_POST['jam_buka'];
-                               $jam_tutup = $_POST['jam_tutup'];
+                        $res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
+                        $d = $res ? $res->fetch_assoc() : null;
 
-                               $ok = db_exec(
-                                   "UPDATE sppg SET nama_sppg=?, alamat=?, gmaps=?, kota=?, jam_buka=?, jam_tutup=? WHERE id=?",
-                                   "ssssssi",
-                                   $nama_sppg, $alamat, $gmaps, $kota, $jam_buka, $jam_tutup, $idx
-                               );
-                               if ($ok) {
-                                 echo "<div class='alert alert-success'>Berhasil di ubah</div>";
-                               }
-                           }
-                           ?>
+                        if (!$d) {
+                            die("SPPG tidak ditemukan");
+                        }
 
-                          <form action="#" method="post">
+                        // Get SPPG account info
+                        $akun_res = db_query("SELECT id, username FROM users WHERE sppg_id=? AND level='sppg'", "i", $idx);
+                        $akun = $akun_res ? $akun_res->fetch_assoc() : null;
+
+                        // Initialize variables for form values
+                        $nama_sppg = $d['nama_sppg'];
+                        $alamat = $d['alamat'];
+                        $gmaps = $d['gmaps'];
+                        $kota = $d['kota'];
+                        $jam_buka = $d['jam_buka'];
+                        $jam_tutup = $d['jam_tutup'];
+
+                        // Handle edit SPPG
+                        if ($_POST['simpanEdit'] && csrf_verify()) {
+                            $nama_sppg = v_string($_POST['nama_sppg'] ?? '', 255);
+                            $alamat = v_string($_POST['alamat'] ?? '', 500);
+                            $gmaps = v_string($_POST['gmaps'] ?? '', 500);
+                            $kota = v_string($_POST['kota'] ?? '', 100);
+                            $jam_buka = v_string($_POST['jam_buka'] ?? '', 10);
+                            $jam_tutup = v_string($_POST['jam_tutup'] ?? '', 10);
+
+                            $ok = db_exec(
+                                "UPDATE sppg SET nama_sppg=?, alamat=?, gmaps=?, kota=?, jam_buka=?, jam_tutup=? WHERE id=?",
+                                "ssssssi",
+                                $nama_sppg, $alamat, $gmaps, $kota, $jam_buka, $jam_tutup, $idx
+                            );
+                            if ($ok) {
+                                echo "<div class='alert alert-success'>Data SPPG berhasil diubah ✅</div>";
+                                // Refresh data
+                                $res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
+                                $d = $res->fetch_assoc();
+                                $nama_sppg = $d['nama_sppg'];
+                                $alamat = $d['alamat'];
+                                $gmaps = $d['gmaps'];
+                                $kota = $d['kota'];
+                                $jam_buka = $d['jam_buka'];
+                                $jam_tutup = $d['jam_tutup'];
+                            }
+                        }
+
+                        // Handle reset password SPPG
+                        if ($_POST['resetPassword'] && csrf_verify()) {
+                            $new_pass = v_string($_POST['new_password'] ?? '', 255);
+                            $pass_hash = password_hash($new_pass, PASSWORD_DEFAULT);
+                            $ok = db_exec("UPDATE users SET password=? WHERE sppg_id=? AND level='sppg'", "si", $pass_hash, $idx);
+                            if ($ok) {
+                                echo "<div class='alert alert-success'>Password akun SPPG berhasil direset ✅</div>";
+                            } else {
+                                echo "<div class='alert alert-danger'>Gagal reset password</div>";
+                            }
+                        }
+
+                        // Handle create akun SPPG
+                        if ($_POST['createAccount'] && csrf_verify()) {
+                            $new_username = v_string($_POST['new_username'] ?? '', 50);
+                            $new_password = v_string($_POST['new_password_account'] ?? '', 255);
+                            $pass_hash = password_hash($new_password, PASSWORD_DEFAULT);
+                            $ok = db_exec("INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)", "ssi", $new_username, $pass_hash, $idx);
+                            if ($ok) {
+                                echo "<div class='alert alert-success'>Akun SPPG berhasil dibuat ✅</div>";
+                                // Refresh akun data
+                                $akun_res = db_query("SELECT id, username FROM users WHERE sppg_id=? AND level='sppg'", "i", $idx);
+                                $akun = $akun_res ? $akun_res->fetch_assoc() : null;
+                            } else {
+                                echo "<div class='alert alert-danger'>Gagal membuat akun. Username mungkin sudah digunakan.</div>";
+                            }
+                        }
+                        ?>
+
+                        <form action="#" method="post">
+                            <?= csrf_field() ?>
                             <table class='table table-striped table-hover'>
                               <tr>
                                 <td>Nama SPPG</td>
-                                <td><input type='text' name='nama_sppg' class="form-control" value='<?= $d['nama_sppg'] ?>'></td>
+                                <td><input type='text' name='nama_sppg' class="form-control" value='<?= e($nama_sppg) ?>' required></td>
                               </tr>
                               <tr>
                                 <td>Alamat</td>
-                                <td><textarea name='alamat' class="form-control" ><?= $d['alamat'] ?></textarea></td>
+                                <td><textarea name='alamat' class="form-control"><?= e($alamat) ?></textarea></td>
                               </tr>
                               <tr>
                                 <td>Link Google Maps</td>
-                                <td><textarea name='gmaps' class="form-control" ><?= $d['gmaps'] ?></textarea></td>
+                                <td><textarea name='gmaps' class="form-control"><?= e($gmaps) ?></textarea></td>
                               </tr>
                               <tr>
                                 <td>Kota</td>
-                                <td><input type='text' name='kota' class="form-control" value='<?= $d['kota'] ?>'></td>
+                                <td><input type='text' name='kota' class="form-control" value='<?= e($kota) ?>' required></td>
                               </tr>
                               <tr>
                                 <td>Jam Buka</td>
-                                <td><input type='time' name='jam_buka' class="form-control" value='<?= $d['jam_buka'] ?>'></td>
+                                <td><input type='time' name='jam_buka' class="form-control" value='<?= e($jam_buka) ?>' required></td>
                               </tr>
                               <tr>
                                 <td>Jam Tutup</td>
-                                <td><input type='time' name='jam_tutup' class="form-control" value='<?= $d['jam_tutup'] ?>'></td>
+                                <td><input type='time' name='jam_tutup' class="form-control" value='<?= e($jam_tutup) ?>' required></td>
                               </tr>
                               <tr>
                                 <td></td>
                                 <td><input type='submit' name='simpanEdit' value='Simpan Perubahan' class='btn btn-primary'></td>
                               </tr>
                             </table>
-                          </form>
-                          <a href="./?p=sppg">
-                            <input type="submit" class="btn btn-primary" value="kembali">
-                          </a>
+                        </form>
+                        <a href="./?p=sppg">
+                            <button type="button" class="btn btn-secondary">Kembali</button>
+                        </a>
 
                       </div>
-                      <!--begin::Col-->
-                      <div class="col-md-6">
-                        <div id="sidebar-color-code" class="w-100"></div>
+                      <!--begin::Col - Akun Login-->
+                      <div class="col-lg-6">
+                        <div class="card border-success">
+                          <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-person-circle"></i> Akun Login SPPG</h5>
+                          </div>
+                          <div class="card-body">
+                            <?php if ($akun): ?>
+                              <div class="mb-3">
+                                <p><strong>Username:</strong> <?= e($akun['username']) ?></p>
+                                <p><small class="text-muted">ID: <?= $akun['id'] ?></small></p>
+                              </div>
+                              <hr>
+                              <h6>Reset Password</h6>
+                              <form action="#" method="post">
+                                <?= csrf_field() ?>
+                                <div class="mb-3">
+                                  <label class="form-label">Password Baru (minimal 8 karakter)</label>
+                                  <input type="password" name="new_password" class="form-control" required minlength="8">
+                                </div>
+                                <button type="submit" name="resetPassword" class="btn btn-warning">
+                                  <i class="bi bi-key"></i> Reset Password
+                                </button>
+                              </form>
+                            <?php else: ?>
+                              <div class="text-center text-muted mb-3">
+                                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                                <p class="mt-2">SPPG ini belum memiliki akun login</p>
+                              </div>
+                              <hr>
+                              <h6>Buat Akun Login Baru</h6>
+                              <form action="#" method="post">
+                                <?= csrf_field() ?>
+                                <div class="mb-3">
+                                  <label class="form-label">Username</label>
+                                  <input type="text" name="new_username" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                  <label class="form-label">Password (minimal 8 karakter)</label>
+                                  <input type="password" name="new_password_account" class="form-control" required minlength="8">
+                                </div>
+                                <button type="submit" name="createAccount" class="btn btn-success">
+                                  <i class="bi bi-person-plus"></i> Buat Akun Login
+                                </button>
+                              </form>
+                            <?php endif; ?>
+                          </div>
+                        </div>
                       </div>
-                      <!--end::Col-->
+                      <!--end::Col - Akun Login-->
                     </div>
                     <!--end::Row-->
                   </div>

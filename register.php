@@ -1,6 +1,7 @@
 <?php
 require_once "config.php";
-$sppg = $db->query("SELECT id, nama_sppg FROM sppg");
+require_once "lib/db_helper.php";
+$sppg = db_query("SELECT id, nama_sppg FROM sppg", "");
 ?>
 <!doctype html>
 <html lang="id">
@@ -69,11 +70,11 @@ $sppg = $db->query("SELECT id, nama_sppg FROM sppg");
           class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
         >
           <option value="">-- Pilih SPPG --</option>
-          <?php while ($s = $sppg->fetch_assoc()): ?>
-            <option value="<?= $s['id'] ?>">
+          <?php if ($sppg): while ($s = $sppg->fetch_assoc()): ?>
+            <option value="<?= (int)$s['id'] ?>">
               <?= htmlspecialchars($s['nama_sppg']) ?>
             </option>
-          <?php endwhile; ?>
+          <?php endwhile; endif; ?>
         </select>
       </div>
 
