@@ -1,19 +1,15 @@
 <?php
-$id = $_GET['id'];          
-$sppg_id = $_GET['sppg_id'];
-
 require_once "../config.php";
+require_once "../lib/db_helper.php";
 
-$sql = "DELETE FROM sppg_rating WHERE id='$id'";
-$hasil = $db->query($sql);
+$id = (int)($_GET['id'] ?? 0);
+$sppg_id = (int)($_GET['sppg_id'] ?? 0);
 
-if ($hasil) {
-    echo "<script>
-            window.location.href='.?p=detail_sppg&id=$sppg_id';
-          </script>";
+$ok = db_exec("DELETE FROM sppg_rating WHERE id=?", "i", $id);
+
+if ($ok) {
+    echo "<script>window.location.href='.?p=detail_sppg&id=$sppg_id';</script>";
 } else {
-    echo "<script>
-            window.location.href='.?p=detail_sppg&id=$sppg_id';
-          </script>";
+    echo "<script>window.location.href='.?p=detail_sppg&id=$sppg_id';</script>";
 }
 ?>

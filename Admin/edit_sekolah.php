@@ -54,33 +54,32 @@
                                       <!--begin::Col-->
                                       <!--end::Col-->
                                       <div class="col-lg-6">
-                                          <?php
-                                            $idx = $_GET['id'];
-                                            $sppg_id = $_GET['sppg_id'];
-                                            require_once "../config.php";
-
-                                            $sql = "select * from sekolah where id='$idx'";
-                                            $data = $db->query($sql);
-                                            foreach ($data as $d) {
-                                                switch($d['jenjang']){
-                                                    case "TK": $jenjang="TK"; $tk="selected";break;
-                                                    case "SD": $jenjang="SD"; $SD="selected";break;
-                                                    case "SMP": $jenjang="SMP"; $SMP="selected";break;
-                                                    case "SMA": $jenjang="SMA"; $SMA="selected";break;
-                                                }
+                                            <?php
+                                                require_once "../config.php";
+                                                require_once "../lib/db_helper.php";
+                                                $idx = (int)($_GET['id'] ?? 0);
+                                                $sppg_id = (int)($_GET['sppg_id'] ?? 0);
+                                                $res = db_query("SELECT * FROM sekolah WHERE id=?", "i", $idx);
+                                                $d = $res ? $res->fetch_assoc() : [];
+                                                $jenjang = $d['jenjang'] ?? '';
+                                                $tk = $jenjang == 'TK' ? "selected" : '';
+                                                $SD = $jenjang == 'SD' ? "selected" : '';
+                                                $SMP = $jenjang == 'SMP' ? "selected" : '';
+                                                $SMA = $jenjang == 'SMA' ? "selected" : '';
                                                 if ($_POST['simpanEdit']) {
                                                     $nama_sekolah = $_POST['nama_sekolah'];
                                                     $jenjang = $_POST['jenjang'];
                                                     $alamat = $_POST['alamat'];
-                                                    
-                                                    $sql = "update sekolah set nama_sekolah='$nama_sekolah', jenjang='$jenjang', alamat='$alamat' WHERE id='$idx'";
-                                                    $hasil = $db->query($sql);
-                                                    if ($hasil) {
+                                                    $ok = db_exec(
+                                                        "UPDATE sekolah SET nama_sekolah=?, jenjang=?, alamat=? WHERE id=?",
+                                                        "sssi",
+                                                        $nama_sekolah, $jenjang, $alamat, $idx
+                                                    );
+                                                    if ($ok) {
                                                         echo "<script>window.location='./?p=detail_sppg&id=$sppg_id';</script>";
                                                     }
                                                 }
-                                            }
-                                            ?>
+                                                ?>
 
 
                                           <form action="#" method="post" enctype="multipart/form-data">

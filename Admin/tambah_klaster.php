@@ -54,21 +54,25 @@
                                 <!--begin::Col-->
                                 <!--end::Col-->
                                 <!--begin::Col-->
-                                <?php
-                                $sppg_id = $_GET['id'];
-                                if ($_POST['simpan']) {
-                                    $nama_ibu = $_POST['nama_ibu'];
-                                    $klaster = $_POST['klaster'];
-                                    $alamat = $_POST['alamat'];
+                                            <?php
+                                            require_once "../config.php";
+                                            require_once "../lib/db_helper.php";
+                                            $sppg_id = (int)($_GET['id'] ?? 0);
+                                            if ($_POST['simpan']) {
+                                                $nama_ibu = $_POST['nama_ibu'];
+                                                $klaster = (int)($_POST['klaster'] ?? 0);
+                                                $alamat = $_POST['alamat'];
 
-                                    require_once "../config.php";
-                                    $sql = "insert into ibu_hamil set sppg_id='$sppg_id', nama_ibu='$nama_ibu', klaster='$klaster' ,alamat='$alamat'";
-                                    $a = $db->query($sql);
-                                    if ($a) {
-                                        echo "<div class='alert alert-success'>Berhasil Ditambahkan✅ <br></div>";
-                                    }
-                                }
-                                ?>
+                                                $ok = db_exec(
+                                                    "INSERT INTO ibu_hamil (sppg_id, nama_ibu, klaster, alamat) VALUES (?, ?, ?, ?)",
+                                                    "issi",
+                                                    $sppg_id, $nama_ibu, $klaster, $alamat
+                                                );
+                                                if ($ok) {
+                                                    echo "<div class='alert alert-success'>Berhasil Ditambahkan✅ <br></div>";
+                                                }
+                                            }
+                                            ?>
 
                                 <form action="#" method="post">
                                     <table>

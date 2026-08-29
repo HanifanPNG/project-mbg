@@ -55,16 +55,20 @@
                                       <!--end::Col-->
                                       <!--begin::Col-->
                                       <?php
-                                        $sppg_id = $_GET['id'];
+                                        require_once "../config.php";
+                                        require_once "../lib/db_helper.php";
+                                        $sppg_id = (int)($_GET['id'] ?? 0);
                                         if ($_POST['simpan']) {
                                             $nama_sekolah = $_POST['nama_sekolah'];
                                             $jenjang = $_POST['jenjang'];
                                             $alamat = $_POST['alamat'];
 
-                                            require_once "../config.php";
-                                            $sql = "insert into sekolah set sppg_id='$sppg_id', nama_sekolah='$nama_sekolah', jenjang='$jenjang' ,alamat='$alamat'";
-                                            $a = $db->query($sql);
-                                            if ($a) {
+                                            $ok = db_exec(
+                                                "INSERT INTO sekolah (sppg_id, nama_sekolah, jenjang, alamat) VALUES (?, ?, ?, ?)",
+                                                "isss",
+                                                $sppg_id, $nama_sekolah, $jenjang, $alamat
+                                            );
+                                            if ($ok) {
                                                 echo "<div class='alert alert-success'>Sekolah Berhasil Ditambahkan✅ <br></div>";
                                             }
                                         }

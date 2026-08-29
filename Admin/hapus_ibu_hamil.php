@@ -1,13 +1,13 @@
 <?php
-$id = $_GET['id'];          
-$sppg_id = $_GET['sppg_id'];
-
 require_once "../config.php";
+require_once "../lib/db_helper.php";
 
-$sql = "delete from ibu_hamil where id='$id'";
-$hasil = $db->query($sql);
+$id = (int)($_GET['id'] ?? 0);
+$sppg_id = (int)($_GET['sppg_id'] ?? 0);
 
-if ($hasil) {
+$ok = db_exec("DELETE FROM ibu_hamil WHERE id=?", "i", $id);
+
+if ($ok) {
     echo "<script>
             alert('berhasil dihapus!');
             window.location.href='.?p=detail_sppg&id=$sppg_id';

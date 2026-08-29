@@ -54,32 +54,31 @@
                                       <!--begin::Col-->
                                       <!--end::Col-->
                                       <div class="col-lg-6">
-                                          <?php
-                                            $idx = $_GET['id'];
-                                            $sppg_id = $_GET['sppg_id'];
-                                            require_once "../config.php";
-
-                                            $sql = "select * from ibu_hamil where id='$idx'";
-                                            $data = $db->query($sql);
-                                            foreach ($data as $d) {
-                                                switch($d['klaster']){
-                                                    case "1": $klaster="Ibu Hamil"; $t1="selected";break;
-                                                    case "2": $klaster="Ibu Menyusui"; $t2="selected";break;
-                                                    case "3": $klaster="Balita Non PAUD"; $t3="selected";break;
-                                                }
+<?php
+                                                require_once "../config.php";
+                                                require_once "../lib/db_helper.php";
+                                                $idx = (int)($_GET['id'] ?? 0);
+                                                $sppg_id = (int)($_GET['sppg_id'] ?? 0);
+                                                $res = db_query("SELECT * FROM ibu_hamil WHERE id=?", "i", $idx);
+                                                $d = $res ? $res->fetch_assoc() : [];
+                                                $klaster = (int)($d['klaster'] ?? 0);
+                                                $t1 = $klaster == 1 ? "selected" : '';
+                                                $t2 = $klaster == 2 ? "selected" : '';
+                                                $t3 = $klaster == 3 ? "selected" : '';
                                                 if ($_POST['simpanEdit']) {
                                                     $nama = $_POST['nama_ibu'];
-                                                    $klaster = $_POST['klaster'];
+                                                    $klaster = (int)($_POST['klaster'] ?? 0);
                                                     $alamat = $_POST['alamat'];
-                                                    
-                                                    $sql = "update ibu_hamil set nama_ibu='$nama', klaster='$klaster', alamat='$alamat' WHERE id='$idx'";
-                                                    $hasil = $db->query($sql);
-                                                    if ($hasil) {
+                                                    $ok = db_exec(
+                                                        "UPDATE ibu_hamil SET nama_ibu=?, klaster=?, alamat=? WHERE id=?",
+                                                        "sisi",
+                                                        $nama, $klaster, $alamat, $idx
+                                                    );
+                                                    if ($ok) {
                                                         echo "<script>window.location='./?p=detail_sppg&id=$sppg_id';</script>";
                                                     }
                                                 }
-                                            }
-                                            ?>
+                                                ?>
 
 
                                           <form action="#" method="post" enctype="multipart/form-data">

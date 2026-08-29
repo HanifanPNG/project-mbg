@@ -1,4 +1,38 @@
-      <main class="app-main">
+      <?php
+require_once "../config.php";
+require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
+
+$msg = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $old = $_POST['oldPassword'] ?? '';
+    $new = $_POST['NewPassword'] ?? '';
+    $conf = $_POST['ConPassword'] ?? '';
+
+    // get current user
+    $uid = $_SESSION['user_id'] ?? 0;
+    $res = db_query("SELECT password FROM users WHERE id=?", "i", $uid);
+    $row = $res ? $res->fetch_assoc() : null;
+
+    if (!$row) {
+        $msg = "User tidak ditemukan";
+    } elseif (!password_verify($old, $row['password'])) {
+        $msg = "Password lama salah";
+    } elseif (strlen($new) < 8) {
+        $msg = "Password baru minimal 8 karakter";
+    } elseif ($new !== $conf) {
+        $msg = "Konfirmasi password tidak cocok";
+    } else {
+        $hash = password_hash($new, PASSWORD_DEFAULT);
+        $ok = db_exec("UPDATE users SET password=? WHERE id=?", "si", $hash, $uid);
+        if ($ok) {
+            $msg = "Password berhasil diubah";
+        } else {
+            $msg = "Gagal mengubah password";
+        }
+    }
+}
+?>
         <!--begin::App Content Header-->
         <div class="app-content-header">
           <!--begin::Container-->
