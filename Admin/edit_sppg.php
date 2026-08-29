@@ -55,31 +55,32 @@
                       <!--begin::Col-->
                       <!--end::Col-->
                       <div class="col-lg-6">
-                          <?php
-                          $idx = $_GET['id'];
-                          require_once "../config.php";
+<?php
+                           require_once "../lib/db_helper.php";
+                           $idx = (int)($_GET['id'] ?? 0);
 
-                          $sql = "SELECT * FROM sppg WHERE id='$idx'";
-                          $data = $db->query($sql);
+                           $res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
+                           $data = $res ? $res->fetch_assoc() : null;
 
-                          // Jika tombol simpan ditekan
-                          foreach ($data as $d) {
-                            if ($_POST['simpanEdit']) {
-                              $nama_sppg = $_POST['nama_sppg'];
-                              $alamat = $_POST['alamat'];
-                              $gmaps = $_POST['gmaps'];
-                              $kota = $_POST['kota'];
-                              $jam_buka = $_POST['jam_buka'];
-                              $jam_tutup = $_POST['jam_tutup'];
+                           // Jika tombol simpan ditekan
+                           if ($data && $_POST['simpanEdit']) {
+                               $nama_sppg = $_POST['nama_sppg'];
+                               $alamat = $_POST['alamat'];
+                               $gmaps = $_POST['gmaps'];
+                               $kota = $_POST['kota'];
+                               $jam_buka = $_POST['jam_buka'];
+                               $jam_tutup = $_POST['jam_tutup'];
 
-                              $sql = "UPDATE sppg SET nama_sppg='$nama_sppg', alamat='$alamat', gmaps='$gmaps', kota='$kota', jam_buka='$jam_buka', jam_tutup='$jam_tutup' WHERE id='$idx'";
-                              $hasil = $db->query($sql);
-                              if ($hasil) {
-                                echo "<div class='alert alert-success'>Berhasil di ubah</div>";
-                              }
-                            }
-                          }
-                          ?>
+                               $ok = db_exec(
+                                   "UPDATE sppg SET nama_sppg=?, alamat=?, gmaps=?, kota=?, jam_buka=?, jam_tutup=? WHERE id=?",
+                                   "ssssssi",
+                                   $nama_sppg, $alamat, $gmaps, $kota, $jam_buka, $jam_tutup, $idx
+                               );
+                               if ($ok) {
+                                 echo "<div class='alert alert-success'>Berhasil di ubah</div>";
+                               }
+                           }
+                           ?>
 
                           <form action="#" method="post">
                             <table class='table table-striped table-hover'>

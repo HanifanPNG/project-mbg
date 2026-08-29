@@ -54,25 +54,28 @@
                       <!--begin::Col-->
                       <!--end::Col-->
                       <!--begin::Col-->
-                      <?php
-                      if ($_POST['simpan']) {
-                        $nama_sppg = $_POST['nama_sppg'];
-                        $alamat = $_POST['alamat'];
-                        $gmaps= $_POST['gmaps'];
-                        $kota = $_POST['kota'];
-                        $jam_buka = $_POST['jam_buka'];
-                        $jam_tutup = $_POST['jam_tutup'];
+<?php
+                       require_once "../lib/db_helper.php";
+                       if ($_POST['simpan']) {
+                         $nama_sppg = $_POST['nama_sppg'];
+                         $alamat = $_POST['alamat'];
+                         $gmaps= $_POST['gmaps'];
+                         $kota = $_POST['kota'];
+                         $jam_buka = $_POST['jam_buka'];
+                         $jam_tutup = $_POST['jam_tutup'];
 
-                        require_once "../config.php";
-                        $waktu = date("Y-m-d H:i:s");
-                        $sql = "insert into sppg set nama_sppg='$nama_sppg', alamat='$alamat', gmaps='$gmaps', kota='$kota' , waktu='$waktu', jam_buka='$jam_buka', jam_tutup='$jam_tutup'";
-                        $a = $db->query($sql);
-                        if ($a) {
-                          echo "<div class='alert alert-success'>SPPG Berhasil Disimpan✅ <br>
-                          <a href='./?p=sppg'>Lihat Data</a></div>";
-                        }
-                      }
-                      ?>
+                         $waktu = date("Y-m-d H:i:s");
+                         $ok = db_exec(
+                             "INSERT INTO sppg (nama_sppg, alamat, gmaps, kota, waktu, jam_buka, jam_tutup) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                             "sssssss",
+                             $nama_sppg, $alamat, $gmaps, $kota, $waktu, $jam_buka, $jam_tutup
+                         );
+                         if ($ok) {
+                           echo "<div class='alert alert-success'>SPPG Berhasil Disimpan✅ <br>
+                           <a href='./?p=sppg'>Lihat Data</a></div>";
+                         }
+                       }
+                       ?>
 
                       <form action="#" method="post">
                         <table>
