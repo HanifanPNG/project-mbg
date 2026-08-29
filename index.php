@@ -1,46 +1,75 @@
 <?php
-$title = "MBG-KU";
-session_start();
-error_reporting(0);
+require_once "lib/error_handler.php";
+require_once "lib/csrf.php";
+require_once "lib/rate_limit.php";
+require_once "lib/validation.php";
 
+setup_error_handling(true);
+
+// Secure session config
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.gc_maxlifetime', '1800');
+session_set_cookie_params([
+    'lifetime' => 1800,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,  // Set true in production with HTTPS
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+session_start();
+csrf_token(); // generate token
+
+$title = "MBG-KU";
 $loginError = "";
 
-if (isset($_POST['btnLogin'])) {
-    $tuser = trim($_POST['tuser']);
-    $tpass = $_POST['tpass'];
-    require_once "config.php";
-    require_once "lib/db_helper.php";
+// Rate limit by IP
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+if (!rate_limit("login_$ip")) {
+    $loginError = "Terlalu banyak percobaan. Silakan coba lagi dalam 5 menit.";
+}
 
-    $res = db_query("SELECT * FROM users WHERE username=?", "s", $tuser);
-    if ($res && $res->num_rows > 0) {
-        $data = $res->fetch_assoc();
-        if (password_verify($tpass, $data['password'])) {
-            if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
-                $loginError = "Akun tidak diizinkan login";
-            } elseif ($data['level'] == 'user' && empty($data['sppg_id'])) {
-                $loginError = "Akun belum terdaftar ke SPPG";
-            } else {
-                session_regenerate_id(true);
-                $_SESSION['isLogin'] = true;
-                $_SESSION['level']   = $data['level'];
-                $_SESSION['user']    = $data['username'];
-                $_SESSION['user_id'] = $data['id'];
-                $_SESSION['sppg_id'] = $data['sppg_id'];
+if (isset($_POST['btnLogin']) && empty($loginError)) {
+    if (!csrf_verify()) {
+        $loginError = "Invalid CSRF token";
+    } else {
+        $tuser = v_string($_POST['tuser'], 50);
+        $tpass = $_POST['tpass'];
+        require_once "config.php";
+        require_once "lib/db_helper.php";
 
-                if ($data['level'] == 'admin') {
-                    header("Location: Admin/");
-                } elseif ($data['level'] == 'user') {
-                    header("Location: User/");
-                } elseif ($data['level'] == 'sppg') {
-                    header("Location: SPPG/");
+        $res = db_query("SELECT * FROM users WHERE username=?", "s", $tuser);
+        if ($res && $res->num_rows > 0) {
+            $data = $res->fetch_assoc();
+            if (password_verify($tpass, $data['password'])) {
+                if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
+                    $loginError = "Akun tidak diizinkan login";
+                } elseif ($data['level'] == 'user' && empty($data['sppg_id'])) {
+                    $loginError = "Akun belum terdaftar ke SPPG";
+                } else {
+                    session_regenerate_id(true);
+                    $_SESSION['isLogin'] = true;
+                    $_SESSION['level']   = $data['level'];
+                    $_SESSION['user']    = $data['username'];
+                    $_SESSION['user_id'] = $data['id'];
+                    $_SESSION['sppg_id'] = $data['sppg_id'];
+
+                    if ($data['level'] == 'admin') {
+                        header("Location: Admin/");
+                    } elseif ($data['level'] == 'user') {
+                        header("Location: User/");
+                    } elseif ($data['level'] == 'sppg') {
+                        header("Location: SPPG/");
+                    }
+                    exit;
                 }
-                exit;
+            } else {
+                $loginError = "Username atau Password salah";
             }
         } else {
             $loginError = "Username atau Password salah";
         }
-    } else {
-        $loginError = "Username atau Password salah";
     }
 }
 ?>
@@ -88,6 +117,8 @@ if (isset($_POST['btnLogin'])) {
 
     <!-- Form -->
     <form method="post" class="space-y-6">
+      <?php require_once "lib/csrf.php"; ?>
+      <?= csrf_field() ?>
 
       <!-- Username -->
       <div>
