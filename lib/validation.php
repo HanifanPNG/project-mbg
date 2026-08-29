@@ -17,3 +17,17 @@ function v_enum(string $val, array $allowed): string {
 function e(mixed $val): string {
     return htmlspecialchars((string)$val, ENT_QUOTES, 'UTF-8');
 }
+
+/**
+ * Generate username from SPPG name
+ * Lowercase, replace spaces/special chars with underscore, limit length
+ */
+function sppg_username_from_name(string $nama_sppg): string {
+    $username = strtolower(trim($nama_sppg));
+    // Replace non-alphanumeric with underscore
+    $username = preg_replace('/[^a-z0-9]+/', '_', $username);
+    // Remove leading/trailing underscores
+    $username = trim($username, '_');
+    // Limit length
+    return mb_substr($username, 0, 50);
+}

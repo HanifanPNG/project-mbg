@@ -61,7 +61,7 @@
                        csrf_token();
 
                        $nama_sppg = $alamat = $gmaps = $kota = $jam_buka = $jam_tutup = "";
-                       $sppg_username = $sppg_password = "";
+                       $sppg_password = "";
                        if ($_POST['simpan'] && csrf_verify()) {
                          $nama_sppg = v_string($_POST['nama_sppg'] ?? '', 255);
                          $alamat = v_string($_POST['alamat'] ?? '', 500);
@@ -69,7 +69,6 @@
                          $kota = v_string($_POST['kota'] ?? '', 100);
                          $jam_buka = v_string($_POST['jam_buka'] ?? '', 10);
                          $jam_tutup = v_string($_POST['jam_tutup'] ?? '', 10);
-                         $sppg_username = v_string($_POST['sppg_username'] ?? '', 50);
                          $sppg_password = $_POST['sppg_password'] ?? '';
 
                          $waktu = date("Y-m-d H:i:s");
@@ -84,29 +83,28 @@
                          if ($sppg_ok) {
                              $sppg_id = $db->insert_id;
                              
-                             // Create SPPG login account if username provided
-                             if (!empty($sppg_username)) {
-                                 $pass_hash = password_hash($sppg_password, PASSWORD_DEFAULT);
-                                 $user_ok = db_exec(
-                                     "INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)",
-                                     "ssi",
-                                     $sppg_username, $pass_hash, $sppg_id
-                                 );
-                                 if ($user_ok) {
-                                     echo "<div class='alert alert-success'>SPPG & Akun Login Berhasil Disimpan✅ <br>
-                                     <a href='./?p=sppg'>Lihat Data</a></div>";
-                                 } else {
-                                     echo "<div class='alert alert-warning'>SPPG Berhasil Disimpan✅ tapi gagal buat akun login. <br>
-                                     <a href='./?p=sppg'>Lihat Data</a></div>";
-                                 }
+                             // Create SPPG login account - username auto-generated from nama_sppg
+                             $sppg_username = sppg_username_from_name($nama_sppg);
+                             $pass_hash = password_hash($sppg_password, PASSWORD_DEFAULT);
+                             $user_ok = db_exec(
+                                 "INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)",
+                                 "ssi",
+                                 $sppg_username, $pass_hash, $sppg_id
+                             );
+                             if ($user_ok) {
+                                 echo "<div class='alert alert-success'>SPPG & Akun Login Berhasil Disimpan✅ <br>
+                                 Username: <strong>" . e($sppg_username) . "</strong> | Password: <strong>" . e($sppg_password) . "</strong><br>
+                                 <a href='./?p=sppg'>Lihat Data</a></div>";
                              } else {
-                                 echo "<div class='alert alert-success'>SPPG Berhasil Disimpan✅ <br>
+                                 echo "<div class='alert alert-warning'>SPPG Berhasil Disimpan✅ tapi gagal buat akun login. <br>
                                  <a href='./?p=sppg'>Lihat Data</a></div>";
                              }
                          } else {
                              echo "<div class='alert alert-danger'>Gagal menyimpan SPPG</div>";
                          }
                        }
+                       // Generate username preview
+                       $sppg_username_preview = sppg_username_from_name($nama_sppg);
                        ?>
 
                       <form action="#" method="post">
@@ -146,15 +144,18 @@
                             </td>
                           </tr>
                           <tr>
-                            <td colspan="2"><hr><strong>Akun Login SPPG (Opsional)</strong></td>
+                            <td colspan="2"><hr><strong>Akun Login SPPG (Otomatis)</strong></td>
                           </tr>
                           <tr>
-                            <td>Username SPPG</td>
-                            <td><input type="text" name="sppg_username" class="form-control" value="<?= e($sppg_username) ?>" placeholder="Isi untuk buat akun login SPPG"></td>
+                            <td>Username SPPG (Otomatis)</td>
+                            <td>
+                              <input type="text" class="form-control" value="<?= e($sppg_username_preview) ?>" readonly>
+                              <small class="text-muted">Otomatis dari nama SPPG: lowercase, spasi jadi underscore</small>
+                            </td>
                           </tr>
                           <tr>
                             <td>Password SPPG</td>
-                            <td><input type="password" name="sppg_password" class="form-control" placeholder="Minimal 8 karakter" minlength="8"></td>
+                            <td><input type="password" name="sppg_password" class="form-control" placeholder="Minimal 8 karakter" minlength="8" required></td>
                           </tr>
                           <tr>
                             <td></td>

@@ -124,12 +124,14 @@
 
                         // Handle create akun SPPG
                         if (isset($_POST['createAccount']) && csrf_verify()) {
-                            $new_username = v_string($_POST['new_username'] ?? '', 50);
                             $new_password = v_string($_POST['new_password_account'] ?? '', 255);
+                            // Username = sama dengan nama SPPG (otomatis)
+                            $new_username = sppg_username_from_name($d['nama_sppg']);
                             $pass_hash = password_hash($new_password, PASSWORD_DEFAULT);
                             $ok = db_exec("INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)", "ssi", $new_username, $pass_hash, $idx);
                             if ($ok) {
-                                echo "<div class='alert alert-success'>Akun SPPG berhasil dibuat ✅</div>";
+                                echo "<div class='alert alert-success'>Akun SPPG berhasil dibuat ✅<br>
+                                Username: <strong>" . e($new_username) . "</strong> | Password: <strong>" . e($new_password) . "</strong></div>";
                                 // Refresh akun data
                                 $akun_res = db_query("SELECT id, username FROM users WHERE sppg_id=? AND level='sppg'", "i", $idx);
                                 $akun = $akun_res ? $akun_res->fetch_assoc() : null;
@@ -208,12 +210,9 @@
                               </div>
                               <hr>
                               <h6>Buat Akun Login Baru</h6>
+                              <p class="text-muted small">Username akan otomatis sama dengan nama SPPG (lowercase, spasi jadi underscore)</p>
                               <form action="#" method="post">
                                 <?= csrf_field() ?>
-                                <div class="mb-3">
-                                  <label class="form-label">Username</label>
-                                  <input type="text" name="new_username" class="form-control" required>
-                                </div>
                                 <div class="mb-3">
                                   <label class="form-label">Password (minimal 8 karakter)</label>
                                   <input type="password" name="new_password_account" class="form-control" required minlength="8">
