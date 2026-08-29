@@ -6,44 +6,42 @@ error_reporting(0);
 $loginError = "";
 
 if (isset($_POST['btnLogin'])) {
-  $tuser = $_POST['tuser'];
-  $tpass = $_POST['tpass'];
-  require_once "config.php";
+    $tuser = trim($_POST['tuser']);
+    $tpass = $_POST['tpass'];
+    require_once "config.php";
+    require_once "lib/db_helper.php";
 
-  $sql = "SELECT * FROM users WHERE username='$tuser'";
-  $hasil = $db->query($sql);
+    $res = db_query("SELECT * FROM users WHERE username=?", "s", $tuser);
+    if ($res && $res->num_rows > 0) {
+        $data = $res->fetch_assoc();
+        if (password_verify($tpass, $data['password'])) {
+            if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
+                $loginError = "Akun tidak diizinkan login";
+            } elseif ($data['level'] == 'user' && empty($data['sppg_id'])) {
+                $loginError = "Akun belum terdaftar ke SPPG";
+            } else {
+                session_regenerate_id(true);
+                $_SESSION['isLogin'] = true;
+                $_SESSION['level']   = $data['level'];
+                $_SESSION['user']    = $data['username'];
+                $_SESSION['user_id'] = $data['id'];
+                $_SESSION['sppg_id'] = $data['sppg_id'];
 
-  if ($hasil->num_rows > 0) {
-    $data = $hasil->fetch_assoc();
-
-    if (password_verify($tpass, $data['password'])) {
-
-      if ($data['level'] != 'admin' && $data['level'] != 'user' && $data['level'] != 'sppg') {
-        $loginError = "Akun tidak diizinkan login";
-      } else if ($data['level'] == 'user' && empty($data['sppg_id'])) {
-        $loginError = "Akun belum terdaftar ke SPPG";
-      } else {
-        $_SESSION['isLogin'] = true;
-        $_SESSION['level']   = $data['level'];
-        $_SESSION['user']    = $data['username'];
-        $_SESSION['user_id'] = $data['id'];
-        $_SESSION['sppg_id'] = $data['sppg_id'];
-
-        if ($data['level'] == 'admin') {
-          header("Location: Admin/");
-        } elseif ($data['level'] == 'user') {
-          header("Location: User/");
-        } elseif ($data['level'] == 'sppg') {
-          header("Location: SPPG/");
+                if ($data['level'] == 'admin') {
+                    header("Location: Admin/");
+                } elseif ($data['level'] == 'user') {
+                    header("Location: User/");
+                } elseif ($data['level'] == 'sppg') {
+                    header("Location: SPPG/");
+                }
+                exit;
+            }
+        } else {
+            $loginError = "Username atau Password salah";
         }
-        exit;
-      }
     } else {
-      $loginError = "Username atau Password salah";
+        $loginError = "Username atau Password salah";
     }
-  } else {
-    $loginError = "Username atau Password salah";
-  }
 }
 ?>
 
