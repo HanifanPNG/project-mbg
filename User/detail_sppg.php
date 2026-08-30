@@ -4,7 +4,7 @@ require_once "../config.php";
 require_once "../lib/db_helper.php";
 require_once "../lib/validation.php";
 require_once "../lib/csrf.php";
-csrf_token(); // generate CSRF token
+csrf_token();
 
 $idx = (int)($_GET['id'] ?? 0);
 $res = db_query("SELECT * FROM sppg WHERE id=?", "i", $idx);
@@ -285,7 +285,7 @@ if (isset($_POST["submit"])) {
     ";
                             }   
                         } else {
-                            echo "<tr><td colspan='3' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
+                            echo "<tr><td colspan='4' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
                         }
                         ?>
                     </tbody>
@@ -464,26 +464,16 @@ ORDER BY sr.tanggal DESC
             </div>
             <h3 class="text-xl font-semibold text-gray-800 mb-4 pt-4 border-t">Beri Ulasan Anda</h3>
 
-            <?php
-                $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
-                $targetSppgId = (int)$sppg_id;
-                $userLevel = $_SESSION['level'] ?? '';
-                $canComment = false;
-                if ($userLevel === 'user') {
-                    // User biasa: hanya boleh komentar SPPG yang dinaungi
-                    $canComment = ($userSppgId === $targetSppgId);
-                } elseif ($userLevel === 'admin' || $userLevel === 'sppg') {
-                    // Admin/SPPG: boleh komentar semua SPPG
-                    $canComment = true;
-                }
-            ?>
-            <?php if (!$canComment): ?>
+            <?php if (
+                isset($_SESSION['level']) &&
+                $_SESSION['level'] === 'user' &&
+                $_SESSION['sppg_id'] != $sppg_id
+            ): ?>
                 <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg">
                     Anda hanya dapat memberi ulasan pada SPPG yang anda terima.
                 </div>
             <?php else: ?>
                 <form action="../actions/simpan_komentar.php" method="post" class="space-y-4" data-aos="zoom-in" data-aos-duration="500">
-                    <?= csrf_field() ?>
                     <input type="hidden" name="sppg_id" value="<?= $sppg_id ?>">
                     <textarea
                         name="komentar"
@@ -579,6 +569,12 @@ ORDER BY sr.tanggal DESC
                     <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Twitter">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0012 7.48v.45A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+                        </svg>
+                    </a>
+
+                    <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Instagram">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.04c-5.5 0-9.96 4.46-9.96 9.96s4.46 9.96 9.96 9.96 9.96-4.46 9.96-9.96S17.5 2.04 12 2.04zm0 18.1A8.14 8.14 0 013.86 12 8.14 8.14 0 0112 3.86 8.14 8.14 0 0120.14 12 8.14 8.14 0 0112 20.14zm3.74-12.78a1.38 1.38 0 11-1.37-1.38 1.38 1.38 0 011.37 1.38zM12 7.96A4.03 4.03 0 108 12a4.03 4.03 0 004-4.04z" />
                         </svg>
                     </a>
 

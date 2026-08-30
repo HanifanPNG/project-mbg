@@ -11,57 +11,84 @@ if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
 }
 $sppg_id = (int)$_SESSION['sppg_id'];
 
-// Ambil daftar minggu yang tersedia untuk dropdown
-$qMingguR = db_query(
-    "SELECT DISTINCT YEARWEEK(tanggal, 3) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai 
-     FROM menu_sppg WHERE sppg_id = ? 
-     GROUP BY YEARWEEK(tanggal, 3) 
-     ORDER BY minggu DESC",
-    "i",
-    $sppg_id
-);
-$qMinggu = $qMingguR;
-
-// Tentukan minggu default: gunakan minggu terbaru yang punya data di database
-$mingguDefault = 0;
-if ($qMinggu && $qMinggu->num_rows > 0) {
-    $firstRow = $qMinggu->fetch_assoc();
-    $mingguDefault = (int)$firstRow['minggu'];
-    $qMinggu->data_seek(0);
+/**
+ * Generate array of week numbers (YYYYWW format) for dropdown
+ * Shows 4 weeks before and 4 weeks after the latest week with data
+ */
+function generate_week_options($latest_week, $range = 4) {
+    $weeks = [];
+    $latest_year = (int)($latest_week / 100);
+    $latest_week_num = $latest_week % 100;
+    
+    for ($i = -$range; $i <= $range; $i++) {
+        $week_num = $latest_week_num + $i;
+        $year = $latest_year;
+        
+        // Handle year overflow/underflow
+        while ($week_num < 1) {
+            $week_num += 52; // Approximate, will be corrected by DateTime
+            $year--;
+        }
+        while ($week_num > 53) {
+            $week_num -= 52;
+            $year++;
+        }
+        
+        // Use DateTime to get correct year/week
+        $dt = new DateTime();
+        $dt->setISODate($year, $week_num);
+        $week_str = (int)$dt->format('oW');
+        
+        $monday = clone $dt;
+        $sunday = clone $dt;
+        $sunday->modify('+6 days');
+        
+        $weeks[] = [
+            'minggu' => $week_str,
+            'dari' => $monday->format('Y-m-d'),
+            'sampai' => $sunday->format('Y-m-d')
+        ];
+    }
+    return $weeks;
 }
 
-// Parameter minggu: format YYYYWW (misal 202635 = tahun 2026 minggu ke-35)
-$mingguParam = isset($_GET['minggu']) ? (int)$_GET['minggu'] : $mingguDefault;
+// Ambil minggu terbaru yang punya data
+$latestWeekRes = db_query(
+    "SELECT YEARWEEK(tanggal, 3) AS minggu FROM menu_sppg WHERE sppg_id = ? ORDER BY tanggal DESC LIMIT 1",
+    "i", $sppg_id
+);
+$latestWeekRow = $latestWeekRes ? $latestWeekRes->fetch_assoc() : null;
+$latestWeek = $latestWeekRow ? (int)$latestWeekRow['minggu'] : 0;
+
+// Generate week options (±4 minggu dari minggu terbaru)
+if ($latestWeek > 0) {
+    $weekOptions = generate_week_options($latestWeek, 4);
+} else {
+    // Fallback ke minggu ini
+    $today = new DateTime();
+    $mingguDefault = (int)$today->format('oW');
+    $weekOptions = generate_week_options($mingguDefault, 4);
+    $latestWeek = $mingguDefault;
+}
+
+// Parameter minggu dari URL
+$mingguParam = isset($_GET['minggu']) ? (int)$_GET['minggu'] : $latestWeek;
 $minggu = $mingguParam;
 
-// Hitung rentang tanggal (Senin - Minggu) untuk minggu yang dipilih
-if ($mingguParam > 0) {
-    // Parse tahun dan nomor minggu dari parameter
-    $tahun = (int)($mingguParam / 100);
-    $mingguKe = $mingguParam % 100;
-    // Cari hari Senin minggu ke-$mingguKe tahun $tahun
-    $jan1 = new DateTime("$tahun-01-01");
-    $dayOfWeek = (int)$jan1->format('N'); // 1=Senin ... 7=Minggu
-    $offset = (1 - $dayOfWeek) + (($mingguKe - 1) * 7);
-    $monday = clone $jan1;
-    $monday->modify("$offset days");
-    $sunday = clone $monday;
-    $sunday->modify('+6 days');
-    $tanggalMulai = $monday->format('Y-m-d');
-    $tanggalAkhir = $sunday->format('Y-m-d');
-} else {
-    // Default: minggu ini (Senin - Minggu hari ini)
-    $today = new DateTime();
-    $dayOfWeek = (int)$today->format('N'); // 1=Senin ... 7=Minggu
-    $monday = clone $today;
-    $monday->modify('-' . ($dayOfWeek - 1) . ' days');
-    $sunday = clone $monday;
-    $sunday->modify('+6 days');
-    $tanggalMulai = $monday->format('Y-m-d');
-    $tanggalAkhir = $sunday->format('Y-m-d');
-    // Format parameter minggu untuk link
-    $mingguParam = (int)$today->format('oW');
-}
+// Hitung rentang tanggal untuk minggu yang dipilih
+$tahun = (int)($mingguParam / 100);
+$mingguKe = $mingguParam % 100;
+$jan1 = new DateTime("$tahun-01-01");
+$dayOfWeek = (int)(new DateTime("$tahun-01-01"))->format('N');
+$offset = (1 - $dayOfWeek) + (($mingguKe - 1) * 7);
+$monday = clone $jan1;
+$monday->modify("$offset days");
+$sunday = clone $monday;
+$sunday->modify('+6 days');
+$tanggalMulai = $monday->format('Y-m-d');
+$tanggalAkhir = $sunday->format('Y-m-d');
+
+$minggu = $mingguParam;
 
 $dataMenu = db_query(
     "SELECT * FROM menu_sppg WHERE sppg_id = ? AND tanggal BETWEEN ? AND ? ORDER BY tanggal ASC",
@@ -72,8 +99,6 @@ $dataMenu = db_query(
 if (!$dataMenu) {
     die("SQL Error");
 }
-
-$minggu = $mingguParam; // For template compatibility
 
 // Statistik Rating
 $ratingStat = db_query(
@@ -177,7 +202,7 @@ $total_ulasan = $stat['total_ulasan'] ?? 0;
             onchange="location.href='?minggu='+this.value"
             class="border rounded-lg px-4 py-2 mb-4">
 
-            <?php while ($m = $qMinggu->fetch_assoc()): ?>
+            <?php foreach ($weekOptions as $m): ?>
                 <option value="<?= $m['minggu'] ?>"
                     <?= ($minggu == $m['minggu']) ? 'selected' : '' ?>>
 
@@ -190,7 +215,7 @@ $total_ulasan = $stat['total_ulasan'] ?? 0;
                     <?php endif; ?>
 
                 </option>
-            <?php endwhile ?>
+            <?php endforeach ?>
         </select>
 
         <!-- STATISTIK RATING -->
