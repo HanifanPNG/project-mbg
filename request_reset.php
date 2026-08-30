@@ -41,6 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg">Kirim Link Reset</button>
     </form>
-    <p class="text-sm text-center mt-4"><a href="index.php" class="text-green-600">Kembali ke login</a></p>
+    <p class="text-sm text-center mt-4"><a href="login.php" class="text-green-600">Kembali ke login</a></p>
   </div>
 </body></html>

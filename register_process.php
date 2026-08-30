@@ -21,7 +21,7 @@ $ok = db_exec(
 );
 
 if ($ok) {
-    header("location:index.php?register=success");
+    header("location:login.php?register=success");
     exit;
 }
 die("Gagal mendaftar");

@@ -5,7 +5,7 @@ session_start();
 require_once "../config.php";
 
 if($_SESSION['isLogin']==false or $_SESSION['level']!="admin"){
-  header("location:../logout.php");
+  header("location:../login.php");
 }
 ?>
 <!doctype html>
@@ -246,7 +246,7 @@ if($_SESSION['isLogin']==false or $_SESSION['level']!="admin"){
                 <!--begin::Menu Footer-->
                 <li class="user-footer">
                   <a href="./?p=gantiPW" class="btn btn-default btn-flat">Ganti Password</a>
-                  <a href="../../logout.php" class="btn btn-default btn-flat float-end">Sign out</a>
+                  <a href="../login.php" class="btn btn-default btn-flat float-end">Sign out</a>
                 </li>
                 <!--end::Menu Footer-->
               </ul>
@@ -309,7 +309,7 @@ if($_SESSION['isLogin']==false or $_SESSION['level']!="admin"){
                 </a>
               </li>
               <li class="nav-item">
-                <a href="../../logout.php" class="nav-link">
+                <a href="../login.php" class="nav-link">
                   <i class="nav-icon bi bi-box-arrow-right"></i>
                   <p>Sign Out</p>
                 </a>

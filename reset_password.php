@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($newPass, PASSWORD_DEFAULT);
         db_exec("UPDATE users SET password=? WHERE username=?", "ss", $hash, $username);
         db_exec("UPDATE password_resets SET used=1 WHERE token=?", "s", $token);
-        header("Location: index.php?reset=success");
+        header("Location: login.php?reset=success");
         exit;
     }
 }
