@@ -126,17 +126,34 @@
                         if (isset($_POST['createAccount']) && csrf_verify()) {
                             $new_password = v_string($_POST['new_password_account'] ?? '', 255);
                             // Username = sama dengan nama SPPG (otomatis)
-                            $new_username = sppg_username_from_name($d['nama_sppg']);
+                            $new_username = sppg_generate_unique_username(sppg_username_from_name($d['nama_sppg']));
                             $pass_hash = password_hash($new_password, PASSWORD_DEFAULT);
                             $ok = db_exec("INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)", "ssi", $new_username, $pass_hash, $idx);
                             if ($ok) {
-                                echo "<div class='alert alert-success'>Akun SPPG berhasil dibuat ✅<br>
-                                Username: <strong>" . e($new_username) . "</strong> | Password: <strong>" . e($new_password) . "</strong></div>";
+                                echo "<div class='alert alert-success'>Akun SPPG berhasil dibuat ✅</div>";
                                 // Refresh akun data
                                 $akun_res = db_query("SELECT id, username FROM users WHERE sppg_id=? AND level='sppg'", "i", $idx);
                                 $akun = $akun_res ? $akun_res->fetch_assoc() : null;
                             } else {
                                 echo "<div class='alert alert-danger'>Gagal membuat akun. Username mungkin sudah digunakan.</div>";
+                            }
+                        }
+
+                        // Handle generate password
+                        if (isset($_POST['generatePassword']) && csrf_verify()) {
+                            // Generate random password (8 chars, alphanumeric)
+                            $chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                            $new_generated_password = '';
+                            for ($i = 0; $i < 12; $i++) {
+                                $new_generated_password .= $chars[random_int(0, strlen($chars) - 1)];
+                            }
+                            // Hash and update
+                            $pass_hash = password_hash($new_generated_password, PASSWORD_DEFAULT);
+                            $ok = db_exec("UPDATE users SET password=? WHERE sppg_id=? AND level='sppg'", "si", $pass_hash, $idx);
+                            if ($ok) {
+                                echo "<div class='alert alert-success'>Password berhasil direset ✅</div>";
+                            } else {
+                                echo "<div class='alert alert-danger'>Gagal generate password</div>";
                             }
                         }
                         ?>
@@ -191,8 +208,31 @@
                                 <p><strong>Username:</strong> <?= e($akun['username']) ?></p>
                                 <p><small class="text-muted">ID: <?= $akun['id'] ?></small></p>
                               </div>
+                              <div class="alert alert-info">
+                                <i class="bi bi-shield-lock"></i> <strong>Keamanan:</strong> Password disimpan terenkripsi (hash) dan tidak dapat dilihat. Gunakan tombol di bawah untuk generate password baru.
+                              </div>
                               <hr>
-                              <h6>Reset Password</h6>
+                              <h6>Generate Password Baru</h6>
+                              <form action="#" method="post">
+                                <?= csrf_field() ?>
+                                <button type="submit" name="generatePassword" class="btn btn-primary">
+                                  <i class="bi bi-arrow-repeat"></i> Generate Password Baru
+                                </button>
+                              </form>
+                              <?php if (isset($new_generated_password)): ?>
+                                <div class="alert alert-success mt-3">
+                                  <strong>Password baru berhasil dibuat!</strong>
+                                  <div class="input-group mt-2">
+                                    <input type="text" class="form-control" value="<?= e($new_generated_password) ?>" readonly id="generatedPassword">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyPassword()">
+                                      <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                  </div>
+                                  <small class="text-muted">Simpan password ini dengan aman. Password ini tidak akan ditampilkan lagi.</small>
+                                </div>
+                              <?php endif; ?>
+                              <hr>
+                              <h6>Atau Set Password Manual</h6>
                               <form action="#" method="post">
                                 <?= csrf_field() ?>
                                 <div class="mb-3">
@@ -200,7 +240,7 @@
                                   <input type="password" name="new_password" class="form-control" required minlength="8">
                                 </div>
                                 <button type="submit" name="resetPassword" class="btn btn-warning">
-                                  <i class="bi bi-key"></i> Reset Password
+                                  <i class="bi bi-key"></i> Set Password Manual
                                 </button>
                               </form>
                             <?php else: ?>
@@ -210,7 +250,7 @@
                               </div>
                               <hr>
                               <h6>Buat Akun Login Baru</h6>
-                              <p class="text-muted small">Username akan otomatis sama dengan nama SPPG (lowercase, spasi jadi underscore)</p>
+                              <p class="text-muted small">Username akan otomatis sama dengan nama SPPG (huruf besar, spasi tetap)</p>
                               <form action="#" method="post">
                                 <?= csrf_field() ?>
                                 <div class="mb-3">
@@ -245,3 +285,15 @@
         </div>
         <!--end::App Content-->
       </main>
+      <script>
+        function copyPassword() {
+          var input = document.getElementById('generatedPassword');
+          if (input) {
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value).then(function() {
+              alert('Password berhasil disalin!');
+            });
+          }
+        }
+      </script>
