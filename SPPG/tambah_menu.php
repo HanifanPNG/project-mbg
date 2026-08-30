@@ -25,38 +25,57 @@
     <div class="bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-200 p-8">
 
       <?php
+      session_start();
       require_once "../config.php";
       require_once "../lib/db_helper.php";
-      $sppg_id = (int)($_GET['id'] ?? 0);
+      require_once "../lib/validation.php";
+      require_once "../lib/csrf.php";
+      csrf_token();
+
+      // SPPG ID dari session (AMAN: tidak bisa dimanipulasi via URL)
+if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
+    header("Location: ../login.php");
+    exit;
+}
+      $sppg_id = (int)$_SESSION['sppg_id'];
+
       date_default_timezone_set('Asia/Jakarta');
-      if (isset($_POST['simpanMenu'])) {
-        $hari = (int)($_POST['hari'] ?? 0);
-        $nama_menu = $_POST['nama_menu'];
-        $tanggal = $_POST['tanggal'];
-        $deskripsi = $_POST['deskripsi_menu'];
-        $image = $_FILES['image']['name'];
-        $tmp = $_FILES['image']['tmp_name'];
-
-        move_uploaded_file($tmp, "../uploads/" . $image);
-
-        $waktu = date("Y-m-d H:i:s");
-        $ok = db_exec(
-            "INSERT INTO menu_sppg (sppg_id, hari, nama_menu, deskripsi_menu, image, waktu, tanggal) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            "iisssss",
-            $sppg_id, $hari, $nama_menu, $deskripsi, $image, $waktu, $tanggal
-        );
-
-        if ($ok) {
-          echo "
-            <div class='mb-6 flex items-center gap-3 rounded-xl bg-green-50 px-5 py-4 text-green-700 border border-green-200'>
-              <span class='text-xl'>✅</span>
-              <span class='font-medium'>Menu berhasil ditambahkan</span>
-            </div>";
+if (isset($_POST['simpanMenu'])) {
+        if (!csrf_verify()) {
+            header("Location: ./tambah_menu.php?id=" . $sppg_id . "&error=csrf");
+            exit;
         }
+          
+          $hari = (int)($_POST['hari'] ?? 0);
+          $nama_menu = v_string($_POST['nama_menu'] ?? '', 255);
+          $tanggal = $_POST['tanggal'] ?? '';
+          $deskripsi = v_string($_POST['deskripsi_menu'] ?? '', 2000);
+          $image = $_FILES['image']['name'] ?? '';
+          $tmp = $_FILES['image']['tmp_name'] ?? '';
+
+          if ($image && $tmp) {
+              move_uploaded_file($tmp, "../uploads/" . $image);
+          }
+
+          $waktu = date("Y-m-d H:i:s");
+          $ok = db_exec(
+              "INSERT INTO menu_sppg (sppg_id, hari, nama_menu, deskripsi_menu, image, waktu, tanggal) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              "iisssss",
+              $sppg_id, $hari, $nama_menu, $deskripsi, $image, $waktu, $tanggal
+          );
+
+          if ($ok) {
+            echo "
+              <div class='mb-6 flex items-center gap-3 rounded-xl bg-green-50 px-5 py-4 text-green-700 border border-green-200'>
+                <span class='text-xl'>✅</span>
+                <span class='font-medium'>Menu berhasil ditambahkan</span>
+              </div>";
+          }
       }
       ?>
 
       <form method="post" enctype="multipart/form-data" class="space-y-8">
+        <?= csrf_field() ?>
 
         <!-- Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -68,7 +87,7 @@
             </label>
             <input type="text" name="nama_menu" required
               placeholder="Contoh: Nasi Ayam Sehat"
-              value="<?= $nama_menu ?? '' ?>"
+              value="<?= e($nama_menu ?? '') ?>"
               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-700
                      focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition">
           </div>
@@ -100,7 +119,7 @@
           <textarea name="deskripsi_menu" rows="4" required
             placeholder="Deskripsi singkat kandungan gizi menu"
             class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-700
-                   focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition"><?= $deskripsi ?? '' ?></textarea>
+                   focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition"><?= e($deskripsi ?? '') ?></textarea>
         </div>
 
         <!-- tanggal -->
@@ -109,7 +128,7 @@
             Tanggal Penyajian
           </label>
           <input type="date" name="tanggal"
-            value="<?= $tanggal ?>"
+            value="<?= e($tanggal ?? '') ?>"
             required
             class="w-full border-gray-300 rounded-lg p-3">
         </div>
@@ -133,7 +152,7 @@
         <!-- Action -->
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 border-t border-slate-200">
 
-          <a href="./?p=detail_sppg&id=<?= $sppg_id ?>"
+          <a href="index.php"
             class="inline-flex items-center gap-2 rounded-xl border border-slate-300
                    px-6 py-3 text-slate-700 hover:bg-slate-100 transition">
             ← Kembali

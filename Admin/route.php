@@ -1,6 +1,6 @@
 <?php 
 
-$p=$_GET['p'];
+$p = $_GET['p'] ?? '';
 
 switch ($p) {
     case 'sppg':

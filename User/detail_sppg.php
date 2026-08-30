@@ -12,17 +12,22 @@ $data = $res ? [$res->fetch_assoc()] : [];
 
 $sppg_id = $idx;
 if (isset($_POST["submit"])) {
-    if (!csrf_verify()) die("Invalid CSRF");
+    if (!csrf_verify()) {
+        header("Location: detail_sppg.php?id=$sppg_id&error=csrf");
+        exit;
+    }
 
     // VALIDASI HAK AKSES
     $userLevel = $_SESSION['level'] ?? '';
     if ($userLevel === 'user') {
         $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
         if ($userSppgId !== $sppg_id) {
-            die("Tidak diizinkan: Anda hanya bisa memberi rating pada SPPG yang Anda terima.");
+            header("Location: detail_sppg.php?id=$sppg_id&error=hak");
+            exit;
         }
     } elseif ($userLevel !== 'admin' && $userLevel !== 'sppg') {
-        die("Akses ditolak");
+        header("Location: ../login.php");
+        exit;
     }
 
     $nama = v_string($_POST["nama"] ?? '', 100);

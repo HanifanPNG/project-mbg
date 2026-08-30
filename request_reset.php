@@ -9,8 +9,10 @@ csrf_token();
 
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_verify()) die("Invalid CSRF");
-    $username = v_string($_POST['username'] ?? '', 50);
+    if (!csrf_verify()) {
+        $message = "Invalid CSRF token";
+    } else {
+        $username = v_string($_POST['username'] ?? '', 50);
     $res = db_query("SELECT id FROM users WHERE username=?", "s", $username);
     if ($res && $res->num_rows > 0) {
         $token = bin2hex(random_bytes(32));
@@ -24,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $message = "Username tidak ditemukan";
     }
+}
 }
 ?>
 <!DOCTYPE html>

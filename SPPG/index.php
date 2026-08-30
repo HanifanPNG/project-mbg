@@ -6,31 +6,81 @@ require_once "../lib/db_helper.php";
 $username = $_SESSION['user'] ?? 'SPPG';
 
 if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
-    die("Akses ditolak");
+    header("Location: ../login.php");
+    exit;
 }
 $sppg_id = (int)$_SESSION['sppg_id'];
 
-// minggu aktif (contoh: 202502)
-$minggu = isset($_GET['minggu'])
-    ? (int) $_GET['minggu']
-    : (int) date('oW');
+// Parameter minggu: format YYYYWW (misal 202635 = tahun 2026 minggu ke-35)
+// Default: minggu ini (berdasarkan tanggal hari ini)
+$mingguParam = isset($_GET['minggu']) ? (int)$_GET['minggu'] : 0;
+
+// Hitung rentang tanggal (Senin - Minggu) untuk minggu yang dipilih
+if ($mingguParam > 0) {
+    // Parse tahun dan nomor minggu dari parameter
+    $tahun = (int)($mingguParam / 100);
+    $mingguKe = $mingguParam % 100;
+    // Cari hari Senin minggu ke-$mingguKe tahun $tahun
+    $jan1 = new DateTime("$tahun-01-01");
+    $dayOfWeek = (int)$jan1->format('N'); // 1=Senin ... 7=Minggu
+    $offset = (1 - $dayOfWeek) + (($mingguKe - 1) * 7);
+    $monday = clone $jan1;
+    $monday->modify("$offset days");
+    $sunday = clone $monday;
+    $sunday->modify('+6 days');
+    $tanggalMulai = $monday->format('Y-m-d');
+    $tanggalAkhir = $sunday->format('Y-m-d');
+} else {
+    // Default: minggu ini (Senin - Minggu hari ini)
+    $today = new DateTime();
+    $dayOfWeek = (int)$today->format('N'); // 1=Senin ... 7=Minggu
+    $monday = clone $today;
+    $monday->modify('-' . ($dayOfWeek - 1) . ' days');
+    $sunday = clone $monday;
+    $sunday->modify('+6 days');
+    $tanggalMulai = $monday->format('Y-m-d');
+    $tanggalAkhir = $sunday->format('Y-m-d');
+    // Format parameter minggu untuk link
+    $mingguParam = (int)$today->format('oW');
+}
+$minggu = $mingguParam; // For template compatibility
 
 $dataMenu = db_query(
-    "SELECT * FROM menu_sppg WHERE sppg_id = ? AND YEARWEEK(tanggal, 1) = ? ORDER BY tanggal ASC",
-    "ii",
-    $sppg_id, $minggu
+    "SELECT * FROM menu_sppg WHERE sppg_id = ? AND tanggal BETWEEN ? AND ? ORDER BY tanggal ASC",
+    "iss",
+    $sppg_id, $tanggalMulai, $tanggalAkhir
 );
 
 if (!$dataMenu) {
     die("SQL Error");
 }
 
+// Ambil daftar minggu yang tersedia untuk dropdown
 $qMingguR = db_query(
-    "SELECT YEARWEEK(tanggal,1) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai FROM menu_sppg WHERE sppg_id = ? GROUP BY YEARWEEK(tanggal,1) ORDER BY minggu DESC",
+    "SELECT DISTINCT YEARWEEK(tanggal, 3) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai 
+     FROM menu_sppg WHERE sppg_id = ? 
+     GROUP BY YEARWEEK(tanggal, 3) 
+     ORDER BY minggu DESC",
     "i",
     $sppg_id
 );
 $qMinggu = $qMingguR;
+
+// Statistik Rating
+$ratingStat = db_query(
+    "SELECT COUNT(*) as total_ulasan, ROUND(AVG(rating), 1) as rata_rating FROM sppg_rating WHERE sppg_id = ?",
+    "i", $sppg_id
+);
+$stat = $ratingStat ? $ratingStat->fetch_assoc() : ['total_ulasan' => 0, 'rata_rating' => 0];
+
+// Statistik Rating
+$ratingStat = db_query(
+    "SELECT COUNT(*) as total_ulasan, ROUND(AVG(rating), 1) as rata_rating FROM sppg_rating WHERE sppg_id = ?",
+    "i", $sppg_id
+);
+$stat = $ratingStat ? $ratingStat->fetch_assoc() : ['total_ulasan' => 0, 'rata_rating' => 0];
+$rata_rating = $stat['rata_rating'] ?? 0;
+$total_ulasan = $stat['total_ulasan'] ?? 0;
 
 ?>
 
@@ -124,18 +174,6 @@ $qMinggu = $qMingguR;
                 </div>
             </div>
         </section>
-        <?php
-        $qMinggu = $db->query("
-            SELECT 
-                YEARWEEK(tanggal,1) AS minggu,
-                MIN(tanggal) AS dari,
-                MAX(tanggal) AS sampai
-            FROM menu_sppg
-            WHERE sppg_id = '$sppg_id'
-            GROUP BY YEARWEEK(tanggal,1)
-            ORDER BY minggu DESC
-        ");
-        ?>
         <select
             onchange="location.href='?minggu='+this.value"
             class="border rounded-lg px-4 py-2 mb-4">
@@ -155,6 +193,39 @@ $qMinggu = $qMingguR;
                 </option>
             <?php endwhile ?>
         </select>
+
+        <!-- STATISTIK RATING -->
+        <section class="py-8 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    <!-- Card Rata-rata Rating -->
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6" data-aos="fade-right" data-aos-duration="500">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-green-100 rounded-full p-4">
+                                <i class="bi bi-star-fill text-green-600 text-3xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Rata-rata Rating</p>
+                                <p class="text-3xl font-bold text-gray-900"><?= $rata_rating ?> / 5</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Total Ulasan -->
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6" data-aos="fade-left" data-aos-duration="500">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-blue-100 rounded-full p-4">
+                                <i class="bi bi-chat-left-text-fill text-blue-600 text-3xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Total Ulasan</p>
+                                <p class="text-3xl font-bold text-gray-900"><?= $total_ulasan ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- TABLE -->
         <section id="daftar_sppg" class="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">

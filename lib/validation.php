@@ -19,13 +19,11 @@ function e(mixed $val): string {
 }
 
 /**
- * Generate username from SPPG name
- * Lowercase, replace spaces/special chars with underscore, limit length
+ * Generate username from SPPG name (huruf besar semua, spasi tetap)
+ * Contoh: "SPPG Purbalingga Wetan 01" → "SPPG PURBALINGGA WETAN 01"
  */
 function sppg_username_from_name(string $nama_sppg): string {
-    $username = strtolower(trim($nama_sppg));
-    $username = preg_replace('/[^a-z0-9]+/', '_', $username);
-    $username = trim($username, '_');
+    $username = mb_strtoupper(trim($nama_sppg));
     return mb_substr($username, 0, 50);
 }
 
@@ -38,7 +36,7 @@ function sppg_generate_unique_username(string $base_username): string {
     $counter = 1;
     $res = db_query("SELECT id FROM users WHERE username=?", "s", $username);
     while ($res && $res->num_rows > 0) {
-        $username = $base_username . '_' . $counter;
+        $username = $base_username . " " . $counter;
         $counter++;
         $res = db_query("SELECT id FROM users WHERE username=?", "s", $username);
     }

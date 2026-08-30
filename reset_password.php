@@ -10,23 +10,27 @@ csrf_token();
 $token = $_GET['token'] ?? '';
 $res = db_query("SELECT username FROM password_resets WHERE token=? AND expires>NOW() AND used=0", "s", $token);
 if (!$res || $res->num_rows === 0) {
-    die("Token tidak valid atau sudah kadaluarsa");
+    header("Location: login.php?error=token");
+    exit;
 }
 $row = $res->fetch_assoc();
 $username = $row['username'];
 
 $error = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_verify()) die("Invalid CSRF");
-    $newPass = $_POST['password_baru'] ?? '';
-    if (strlen($newPass) < 8) {
-        $error = "Password minimal 8 karakter";
+    if (!csrf_verify()) {
+        $error = "Invalid CSRF token";
     } else {
-        $hash = password_hash($newPass, PASSWORD_DEFAULT);
-        db_exec("UPDATE users SET password=? WHERE username=?", "ss", $hash, $username);
-        db_exec("UPDATE password_resets SET used=1 WHERE token=?", "s", $token);
-        header("Location: login.php?reset=success");
-        exit;
+        $newPass = $_POST['password_baru'] ?? '';
+        if (strlen($newPass) < 8) {
+            $error = "Password minimal 8 karakter";
+        } else {
+            $hash = password_hash($newPass, PASSWORD_DEFAULT);
+            db_exec("UPDATE users SET password=? WHERE username=?", "ss", $hash, $username);
+            db_exec("UPDATE password_resets SET used=1 WHERE token=?", "s", $token);
+            header("Location: login.php?reset=success");
+            exit;
+        }
     }
 }
 ?>

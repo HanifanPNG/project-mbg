@@ -15,5 +15,8 @@ if ($db->connect_errno) {
     error_log("DB connection failed: " . $db->connect_error);
     die("Koneksi database gagal");
 }
+// Set charset to match database tables (macce_bin)
 $db->set_charset("utf8mb4");
+// Set connection collation to match database tables
+$db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
 ?>

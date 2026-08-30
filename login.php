@@ -25,7 +25,7 @@ $loginError = "";
 
 if (isset($_POST['btnLogin'])) {
     if (!csrf_verify()) {
-        $loginError = "Invalid CSRF token";
+        $loginError = "Sesi berakhir. Silakan coba login lagi.";
     } else {
         $tuser = v_string($_POST['tuser'], 50);
         $tpass = $_POST['tpass'];

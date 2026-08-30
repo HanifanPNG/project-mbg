@@ -11,7 +11,8 @@ function csrf_field(): string {
 function csrf_verify(): bool {
     if (!isset($_POST['csrf_token'])) return false;
     $stored = $_SESSION['csrf_token'] ?? '';
-    if (!hash_equals($stored, $_POST['csrf_token'])) return false;
+    return hash_equals($stored, $_POST['csrf_token']);
+}
+function csrf_regenerate(): void {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    return true;
 }

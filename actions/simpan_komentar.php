@@ -7,10 +7,14 @@ require_once "../lib/csrf.php";
 
 // WAJIB LOGIN
 if (!isset($_SESSION['isLogin'])) {
-    die("Akses ditolak");
+    header("Location: ../login.php");
+    exit;
 }
 
-if (!csrf_verify()) die("Invalid CSRF");
+if (!csrf_verify()) {
+    header("Location: ../User/detail_sppg.php?id=" . (int)($_POST['sppg_id'] ?? 0));
+    exit;
+}
 
 // AMBIL DATA
 $sppg_id  = (int)($_POST['sppg_id'] ?? 0);
@@ -24,11 +28,12 @@ if ($userLevel === 'user') {
     // User biasa: hanya boleh rating SPPG yang dinaungi
     $userSppgId = (int)($_SESSION['sppg_id'] ?? 0);
     if ($userSppgId !== $sppg_id) {
-        die("Tidak diizinkan: Anda hanya bisa memberi rating pada SPPG yang Anda terima.");
+        header("Location: ../User/detail_sppg.php?id=$sppg_id&error=hak");
+        exit;
     }
 } elseif ($userLevel !== 'admin' && $userLevel !== 'sppg') {
-    // User dengan level tidak dikenal
-    die("Akses ditolak");
+    header("Location: ../login.php");
+    exit;
 }
 
 // SIMPAN KOMENTAR

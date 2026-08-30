@@ -1,7 +1,18 @@
 <?php
 error_reporting(0);
+session_start();
 require_once "../config.php";
 require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
+require_once "../lib/csrf.php";
+csrf_token();
+
+// SPPG ID dari session (AMAN)
+if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
+    header("Location: ../login.php");
+    exit;
+}
+$sppg_id = (int)$_SESSION['sppg_id'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -35,25 +46,32 @@ require_once "../lib/db_helper.php";
                         <div class="lg:col-span-1">
                             <?php
                             $idx = (int)($_GET['id'] ?? 0);
-                            $sppg_id = (int)($_GET['sppg_id'] ?? 0);
 
-                            $res = db_query("SELECT * FROM menu_sppg WHERE id=?", "i", $idx);
+                            // Validasi ownership: menu ini milik SPPG yang login?
+                            $res = db_query("SELECT * FROM menu_sppg WHERE id=? AND sppg_id=?", "ii", $idx, $sppg_id);
                             $d = $res ? $res->fetch_assoc() : null;
+if (!$d) {
+    header("Location: index.php?error=notfound");
+    exit;
+}
                             $hari = $sen = $sel = $rab = $kam = $jum = "";
-                            if ($d) {
-                                switch ($d['hari']) {
-                                    case '1': $hari = "Senin"; $sen = "selected"; break;
-                                    case '2': $hari = "Selasa"; $sel = "selected"; break;
-                                    case '3': $hari = "Rabu"; $rab = "selected"; break;
-                                    case '4': $hari = "Kamis"; $kam = "selected"; break;
-                                    case '5': $hari = "Jum'at"; $jum = "selected"; break;
-                                }
+                            switch ($d['hari']) {
+                                case '1': $hari = "Senin"; $sen = "selected"; break;
+                                case '2': $hari = "Selasa"; $sel = "selected"; break;
+                                case '3': $hari = "Rabu"; $rab = "selected"; break;
+                                case '4': $hari = "Kamis"; $kam = "selected"; break;
+                                case '5': $hari = "Jum'at"; $jum = "selected"; break;
                             }
 
-                            if ($_POST['simpanEdit']) {
+if (isset($_POST['simpanEdit'])) {
+        if (!csrf_verify()) {
+            header("Location: ./edit_menu.php?id=" . $idx . "&error=csrf");
+            exit;
+        }
+                                
                                 $hari_val = (int)($_POST['hari'] ?? 0);
-                                $nama_menu = $_POST['nama_menu'];
-                                $deskripsi_menu = $_POST['deskripsi_menu'];
+                                $nama_menu = v_string($_POST['nama_menu'] ?? '', 255);
+                                $deskripsi_menu = v_string($_POST['deskripsi_menu'] ?? '', 2000);
 
                                 if (!empty($_FILES['image']['name'])) {
                                     $image = $_FILES['image']['name'];
@@ -63,17 +81,18 @@ require_once "../lib/db_helper.php";
                                 }
 
                                 $ok = db_exec(
-                                    "UPDATE menu_sppg SET hari=?, nama_menu=?, deskripsi_menu=?, image=? WHERE id=?",
-                                    "isssi",
-                                    $hari_val, $nama_menu, $deskripsi_menu, $image, $idx
+                                    "UPDATE menu_sppg SET hari=?, nama_menu=?, deskripsi_menu=?, image=? WHERE id=? AND sppg_id=?",
+                                    "isssii",
+                                    $hari_val, $nama_menu, $deskripsi_menu, $image, $idx, $sppg_id
                                 );
                                 if ($ok) {
-                                    echo "<script>window.location='index.php?id=$idx';</script>";
+                                    echo "<script>window.location='index.php';</script>";
                                 }
                             }
                             ?>
 
                             <form action="#" method="post" enctype="multipart/form-data" class="space-y-6">
+                                <?= csrf_field() ?>
 
                                 <div>
                                     <label for="hari" class="block text-sm font-medium text-gray-700 mb-1">Hari</label>
