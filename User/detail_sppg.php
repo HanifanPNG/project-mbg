@@ -138,7 +138,7 @@ if (isset($_POST["submit"])) {
       </div>
 
     </div>
-  </div>";
+  </div";
         }
         ?>
 
@@ -153,55 +153,60 @@ if (isset($_POST["submit"])) {
             </h2>
 
             <?php
-            // Ambil daftar minggu yang tersedia untuk dropdown
-            $qMingguU = db_query(
-                "SELECT DISTINCT YEARWEEK(tanggal, 3) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai 
-                 FROM menu_sppg WHERE sppg_id = ? 
-                 GROUP BY YEARWEEK(tanggal, 3) 
-                 ORDER BY minggu DESC",
-                "i",
-                $sppg_id
-            );
-            $qMingguUCount = $qMingguU ? $qMingguU->num_rows : 0;
-
-            // Tentukan minggu default: minggu terbaru yang punya data
-            $mingguDefaultU = 0;
-            if ($qMingguUCount > 0) {
-                $firstRowU = $qMingguU->fetch_assoc();
-                $mingguDefaultU = (int)$firstRowU['minggu'];
-                $qMingguU->data_seek(0);
+            // ===== FUNGSI GENERATE MINGGU ±4 DARI MINGGU TERBARU =====
+            function generate_week_options_user($latest_week, $range = 4) {
+                $weeks = [];
+                if ($latest_week <= 0) return $weeks;
+                $latest_year = (int)($latest_week / 100);
+                $latest_week_num = $latest_week % 100;
+                for ($i = -$range; $i <= $range; $i++) {
+                    $week_num = $latest_week_num + $i;
+                    $year = $latest_year;
+                    while ($week_num < 1) { $week_num += 52; $year--; }
+                    while ($week_num > 53) { $week_num -= 52; $year++; }
+                    $dt = new DateTime();
+                    $dt->setISODate($year, $week_num);
+                    $week_str = (int)$dt->format('oW');
+                    $monday = clone $dt;
+                    $sunday = clone $dt;
+                    $sunday->modify('+6 days');
+                    $weeks[] = [
+                        'minggu' => $week_str,
+                        'dari' => $monday->format('Y-m-d'),
+                        'sampai' => $sunday->format('Y-m-d')
+                    ];
+                }
+                return $weeks;
             }
 
-            // Parameter minggu dari URL (opsional)
-            $mingguParamU = isset($_GET['minggu']) ? (int)$_GET['minggu'] : $mingguDefaultU;
-            $mingguU = $mingguParamU;
+            // Ambil minggu terbaru yang punya data
+            $latestWeekRes = db_query(
+                "SELECT YEARWEEK(tanggal, 3) AS minggu FROM menu_sppg WHERE sppg_id = ? ORDER BY tanggal DESC LIMIT 1",
+                "i", $sppg_id
+            );
+            $latestWeekRow = $latestWeekRes ? $latestWeekRes->fetch_assoc() : null;
+            $latestWeek = $latestWeekRow ? (int)$latestWeekRow['minggu'] : 0;
 
-            // Hitung rentang tanggal (Senin - Minggu) - initialize with current week as default
-            $todayU = new DateTime();
-            $dayOfWeekU = (int)$todayU->format('N');
-            $mondayU = clone $todayU;
-            $mondayU->modify('-' . ($dayOfWeekU - 1) . ' days');
+            // Generate ±4 minggu dari minggu terbaru (atau minggu ini jika tidak ada data)
+            $weekOptions = generate_week_options_user($latestWeek > 0 ? $latestWeek : (int)date('oW'), 4);
+
+            // Parameter minggu dari URL
+            $mingguParam = isset($_GET['minggu']) ? (int)$_GET['minggu'] : $latestWeek;
+            if ($mingguParam <= 0) $mingguParam = (int)date('oW');
+            $mingguU = $mingguParam;
+
+            // Hitung rentang tanggal (Senin - Minggu)
+            $tahunU = (int)($mingguParam / 100);
+            $mingguKeU = $mingguParam % 100;
+            $jan1U = new DateTime("$tahunU-01-01");
+            $dayU = (int)$jan1U->format('N');
+            $offsetU = (1 - $dayU) + (($mingguKeU - 1) * 7);
+            $mondayU = clone $jan1U;
+            $mondayU->modify("$offsetU days");
             $sundayU = clone $mondayU;
             $sundayU->modify('+6 days');
             $tanggalMulaiU = $mondayU->format('Y-m-d');
             $tanggalAkhirU = $sundayU->format('Y-m-d');
-            $mingguU = (int)$todayU->format('oW');
-
-            // Override dengan minggu terpilih jika ada
-            if ($mingguU > 0 && $mingguU !== (int)$todayU->format('oW')) {
-                $tahunU = (int)($mingguU / 100);
-                $mingguKeU = $mingguU % 100;
-                $jan1U = new DateTime("$tahunU-01-01");
-                $dayU = (int)$jan1U->format('N');
-                $offsetU = (1 - $dayU) + (($mingguKeU - 1) * 7);
-                $mondayU = clone $jan1U;
-                $mondayU->modify("$offsetU days");
-                $sundayU = clone $mondayU;
-                $sundayU->modify('+6 days');
-                $tanggalMulaiU = $mondayU->format('Y-m-d');
-                $tanggalAkhirU = $sundayU->format('Y-m-d');
-                $mingguU = $mingguParamU; // override with URL param
-            }
 
             // Query menu untuk minggu terpilih
             $dataMenu = db_query(
@@ -211,15 +216,15 @@ if (isset($_POST["submit"])) {
             );
             ?>
 
-            <?php if ($qMingguUCount > 0): ?>
+            <?php if (count($weekOptions) > 0): ?>
             <div class="mb-4 flex items-center gap-3">
                 <label class="text-sm font-medium text-gray-600">Tampilkan minggu:</label>
                 <select onchange="location.href='?id=<?= $sppg_id ?>&minggu='+this.value" class="px-4 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                    <?php while ($mU = $qMingguU->fetch_assoc()): ?>
-                        <option value="<?= $mU['minggu'] ?>" <?= ($mingguU == $mU['minggu']) ? 'selected' : '' ?>>
+                    <?php foreach ($weekOptions as $mU): ?>
+                        <option value="<?= $mU['minggu'] ?>" <?= ($mingguParam == $mU['minggu']) ? 'selected' : '' ?>>
                             <?= date('d M Y', strtotime($mU['dari'])) ?> - <?= date('d M Y', strtotime($mU['sampai'])) ?>
                         </option>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <?php endif; ?>
@@ -242,20 +247,20 @@ if (isset($_POST["submit"])) {
                             foreach ($dataMenu as $m) {
                                 if ($lastTanggal !== $m['tanggal']) {
                                     $hariIndo = [
-                          'Monday'    => 'Senin',
-                          'Tuesday'   => 'Selasa',
-                          'Wednesday' => 'Rabu',
-                          'Thursday'  => 'Kamis',
-                          'Friday'    => 'Jumat',
-                        ];
-                        $h = $hariIndo[date('l', strtotime($m['tanggal']))];
-                        echo "
-                        <tr class='bg-green-100'>
-                            <td colspan='4' class='px-6 py-3 font-bold text-green-800'>
-                               Dibuat : 📅 $h, " . date('d M Y', strtotime($m['tanggal'])) . "
+                              'Monday'    => 'Senin',
+                              'Tuesday'   => 'Selasa',
+                              'Wednesday' => 'Rabu',
+                              'Thursday'  => 'Kamis',
+                              'Friday'    => 'Jumat',
+                            ];
+                            $h = $hariIndo[date('l', strtotime($m['tanggal']))];
+                            echo "
+                            <tr class='bg-green-100'>
+                                <td colspan='4' class='px-6 py-3 font-bold text-green-800'>
+                                   Dibuat : 📅 $h, " . date('d M Y', strtotime($m['tanggal'])) . "
                             </td>
                         </tr>
-                        ";          
+                        ";
                                     $lastTanggal = $m['tanggal'];
                                 }
                                 // Konversi hari
@@ -283,7 +288,7 @@ if (isset($_POST["submit"])) {
         </td>
     </tr>
     ";
-                            }   
+                            }
                         } else {
                             echo "<tr><td colspan='4' class='py-5 text-center text-gray-500 bg-gray-50'>Belum ada menu yang terdaftar untuk SPPG ini.</td></tr>";
                         }
@@ -340,7 +345,7 @@ if (isset($_POST["submit"])) {
                 </table>
             </div>
         </div>
-        <!-- kelomppok 3b -->
+        <!-- kelompok 3b -->
         <div class="bg-white p-8 rounded-xl shadow-xl border border-gray-200" data-aos="fade-right" data-aos-duration="1000">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-green-main pb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-main" viewBox="0 0 20 20" fill="currentColor">
@@ -555,6 +560,12 @@ ORDER BY sr.tanggal DESC
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                         </svg>
+                        Telepon: <span class="text-gray-400">0812-3456-7890</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </svg>
                         Alamat: <span class="text-gray-400">Purbalingga, Jawa Tengah, Indonesia</span>
                     </li>
                 </ul>
@@ -569,12 +580,6 @@ ORDER BY sr.tanggal DESC
                     <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Twitter">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0012 7.48v.45A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
-                        </svg>
-                    </a>
-
-                    <a href="#" class="text-gray-500 hover:text-green-400 transition duration-150 ease-in-out" aria-label="Instagram">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2.04c-5.5 0-9.96 4.46-9.96 9.96s4.46 9.96 9.96 9.96 9.96-4.46 9.96-9.96S17.5 2.04 12 2.04zm0 18.1A8.14 8.14 0 013.86 12 8.14 8.14 0 0112 3.86 8.14 8.14 0 0120.14 12 8.14 8.14 0 0112 20.14zm3.74-12.78a1.38 1.38 0 11-1.37-1.38 1.38 1.38 0 011.37 1.38zM12 7.96A4.03 4.03 0 108 12a4.03 4.03 0 004-4.04z" />
                         </svg>
                     </a>
 
