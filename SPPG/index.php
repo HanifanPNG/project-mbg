@@ -11,9 +11,28 @@ if (!isset($_SESSION['isLogin']) || $_SESSION['level'] !== 'sppg') {
 }
 $sppg_id = (int)$_SESSION['sppg_id'];
 
+// Ambil daftar minggu yang tersedia untuk dropdown
+$qMingguR = db_query(
+    "SELECT DISTINCT YEARWEEK(tanggal, 3) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai 
+     FROM menu_sppg WHERE sppg_id = ? 
+     GROUP BY YEARWEEK(tanggal, 3) 
+     ORDER BY minggu DESC",
+    "i",
+    $sppg_id
+);
+$qMinggu = $qMingguR;
+
+// Tentukan minggu default: gunakan minggu terbaru yang punya data di database
+$mingguDefault = 0;
+if ($qMinggu && $qMinggu->num_rows > 0) {
+    $firstRow = $qMinggu->fetch_assoc();
+    $mingguDefault = (int)$firstRow['minggu'];
+    $qMinggu->data_seek(0);
+}
+
 // Parameter minggu: format YYYYWW (misal 202635 = tahun 2026 minggu ke-35)
-// Default: minggu ini (berdasarkan tanggal hari ini)
-$mingguParam = isset($_GET['minggu']) ? (int)$_GET['minggu'] : 0;
+$mingguParam = isset($_GET['minggu']) ? (int)$_GET['minggu'] : $mingguDefault;
+$minggu = $mingguParam;
 
 // Hitung rentang tanggal (Senin - Minggu) untuk minggu yang dipilih
 if ($mingguParam > 0) {
@@ -43,7 +62,6 @@ if ($mingguParam > 0) {
     // Format parameter minggu untuk link
     $mingguParam = (int)$today->format('oW');
 }
-$minggu = $mingguParam; // For template compatibility
 
 $dataMenu = db_query(
     "SELECT * FROM menu_sppg WHERE sppg_id = ? AND tanggal BETWEEN ? AND ? ORDER BY tanggal ASC",
@@ -55,23 +73,7 @@ if (!$dataMenu) {
     die("SQL Error");
 }
 
-// Ambil daftar minggu yang tersedia untuk dropdown
-$qMingguR = db_query(
-    "SELECT DISTINCT YEARWEEK(tanggal, 3) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai 
-     FROM menu_sppg WHERE sppg_id = ? 
-     GROUP BY YEARWEEK(tanggal, 3) 
-     ORDER BY minggu DESC",
-    "i",
-    $sppg_id
-);
-$qMinggu = $qMingguR;
-
-// Statistik Rating
-$ratingStat = db_query(
-    "SELECT COUNT(*) as total_ulasan, ROUND(AVG(rating), 1) as rata_rating FROM sppg_rating WHERE sppg_id = ?",
-    "i", $sppg_id
-);
-$stat = $ratingStat ? $ratingStat->fetch_assoc() : ['total_ulasan' => 0, 'rata_rating' => 0];
+$minggu = $mingguParam; // For template compatibility
 
 // Statistik Rating
 $ratingStat = db_query(
@@ -83,7 +85,6 @@ $rata_rating = $stat['rata_rating'] ?? 0;
 $total_ulasan = $stat['total_ulasan'] ?? 0;
 
 ?>
-
 <!doctype html>
 <html lang="id" class="scroll-smooth">
 
@@ -136,8 +137,6 @@ $total_ulasan = $stat['total_ulasan'] ?? 0;
                     <button id="mobileBtn" class="p-2 border rounded-lg">☰</button>
                 </div>
             </div>
-
-
         </div>
 
         <div id="mobileMenu" class="hidden md:hidden bg-white px-4 pb-4">

@@ -153,9 +153,76 @@ if (isset($_POST["submit"])) {
             </h2>
 
             <?php
-            $sqlMenu = "select * from menu_sppg where sppg_id = '$sppg_id' order by tanggal ASC, hari ASC";
-            $dataMenu = $db->query($sqlMenu);
+            // Ambil daftar minggu yang tersedia untuk dropdown
+            $qMingguU = db_query(
+                "SELECT DISTINCT YEARWEEK(tanggal, 3) AS minggu, MIN(tanggal) AS dari, MAX(tanggal) AS sampai 
+                 FROM menu_sppg WHERE sppg_id = ? 
+                 GROUP BY YEARWEEK(tanggal, 3) 
+                 ORDER BY minggu DESC",
+                "i",
+                $sppg_id
+            );
+            $qMingguUCount = $qMingguU ? $qMingguU->num_rows : 0;
+
+            // Tentukan minggu default: minggu terbaru yang punya data
+            $mingguDefaultU = 0;
+            if ($qMingguUCount > 0) {
+                $firstRowU = $qMingguU->fetch_assoc();
+                $mingguDefaultU = (int)$firstRowU['minggu'];
+                $qMingguU->data_seek(0);
+            }
+
+            // Parameter minggu dari URL (opsional)
+            $mingguParamU = isset($_GET['minggu']) ? (int)$_GET['minggu'] : $mingguDefaultU;
+            $mingguU = $mingguParamU;
+
+            // Hitung rentang tanggal (Senin - Minggu) - initialize with current week as default
+            $todayU = new DateTime();
+            $dayOfWeekU = (int)$todayU->format('N');
+            $mondayU = clone $todayU;
+            $mondayU->modify('-' . ($dayOfWeekU - 1) . ' days');
+            $sundayU = clone $mondayU;
+            $sundayU->modify('+6 days');
+            $tanggalMulaiU = $mondayU->format('Y-m-d');
+            $tanggalAkhirU = $sundayU->format('Y-m-d');
+            $mingguU = (int)$todayU->format('oW');
+
+            // Override dengan minggu terpilih jika ada
+            if ($mingguU > 0 && $mingguU !== (int)$todayU->format('oW')) {
+                $tahunU = (int)($mingguU / 100);
+                $mingguKeU = $mingguU % 100;
+                $jan1U = new DateTime("$tahunU-01-01");
+                $dayU = (int)$jan1U->format('N');
+                $offsetU = (1 - $dayU) + (($mingguKeU - 1) * 7);
+                $mondayU = clone $jan1U;
+                $mondayU->modify("$offsetU days");
+                $sundayU = clone $mondayU;
+                $sundayU->modify('+6 days');
+                $tanggalMulaiU = $mondayU->format('Y-m-d');
+                $tanggalAkhirU = $sundayU->format('Y-m-d');
+                $mingguU = $mingguParamU; // override with URL param
+            }
+
+            // Query menu untuk minggu terpilih
+            $dataMenu = db_query(
+                "SELECT * FROM menu_sppg WHERE sppg_id = ? AND tanggal BETWEEN ? AND ? ORDER BY tanggal ASC, hari ASC",
+                "iss",
+                $sppg_id, $tanggalMulaiU, $tanggalAkhirU
+            );
             ?>
+
+            <?php if ($qMingguUCount > 0): ?>
+            <div class="mb-4 flex items-center gap-3">
+                <label class="text-sm font-medium text-gray-600">Tampilkan minggu:</label>
+                <select onchange="location.href='?id=<?= $sppg_id ?>&minggu='+this.value" class="px-4 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <?php while ($mU = $qMingguU->fetch_assoc()): ?>
+                        <option value="<?= $mU['minggu'] ?>" <?= ($mingguU == $mU['minggu']) ? 'selected' : '' ?>>
+                            <?= date('d M Y', strtotime($mU['dari'])) ?> - <?= date('d M Y', strtotime($mU['sampai'])) ?>
+                        </option>
+                    <?php endwhile; ?>
+                </select>
+            </div>
+            <?php endif; ?>
 
             <div class="overflow-x-auto rounded-lg border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
