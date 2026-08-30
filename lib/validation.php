@@ -24,10 +24,23 @@ function e(mixed $val): string {
  */
 function sppg_username_from_name(string $nama_sppg): string {
     $username = strtolower(trim($nama_sppg));
-    // Replace non-alphanumeric with underscore
     $username = preg_replace('/[^a-z0-9]+/', '_', $username);
-    // Remove leading/trailing underscores
     $username = trim($username, '_');
-    // Limit length
     return mb_substr($username, 0, 50);
+}
+
+/**
+ * Generate unique SPPG username (append number if exists)
+ */
+function sppg_generate_unique_username(string $base_username): string {
+    global $db;
+    $username = $base_username;
+    $counter = 1;
+    $res = db_query("SELECT id FROM users WHERE username=?", "s", $username);
+    while ($res && $res->num_rows > 0) {
+        $username = $base_username . '_' . $counter;
+        $counter++;
+        $res = db_query("SELECT id FROM users WHERE username=?", "s", $username);
+    }
+    return $username;
 }

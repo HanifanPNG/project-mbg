@@ -1,3 +1,55 @@
+<?php
+require_once "../lib/db_helper.php";
+require_once "../lib/validation.php";
+require_once "../lib/csrf.php";
+csrf_token();
+
+$nama_sppg = $alamat = $gmaps = $kota = $jam_buka = $jam_tutup = "";
+$sppg_password = "";
+
+// Handle form submit
+if (isset($_POST['simpan']) && csrf_verify()) {
+    $nama_sppg = v_string($_POST['nama_sppg'] ?? '', 255);
+    $alamat = v_string($_POST['alamat'] ?? '', 500);
+    $gmaps = v_string($_POST['gmaps'] ?? '', 500);
+    $kota = v_string($_POST['kota'] ?? '', 100);
+    $jam_buka = v_string($_POST['jam_buka'] ?? '', 10);
+    $jam_tutup = v_string($_POST['jam_tutup'] ?? '', 10);
+    $sppg_password = $_POST['sppg_password'] ?? '';
+
+    $waktu = date("Y-m-d H:i:s");
+    
+    // Insert SPPG
+    $sppg_ok = db_exec(
+        "INSERT INTO sppg (nama_sppg, alamat, gmaps, kota, waktu, jam_buka, jam_tutup) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "sssssss",
+        $nama_sppg, $alamat, $gmaps, $kota, $waktu, $jam_buka, $jam_tutup
+    );
+    
+    if ($sppg_ok) {
+        $sppg_id = $db->insert_id;
+        
+        // Create SPPG login account
+        $sppg_username = sppg_generate_unique_username(sppg_username_from_name($nama_sppg));
+        $pass_hash = password_hash($sppg_password, PASSWORD_DEFAULT);
+        $user_ok = db_exec(
+            "INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)",
+            "ssi",
+            $sppg_username, $pass_hash, $sppg_id
+        );
+        
+        // Redirect (setelah semua insert berhasil)
+        header("Location: ./?p=sppg");
+        exit;
+    } else {
+        $error_msg = "Gagal menyimpan SPPG: " . e($db->error ?? 'Unknown error');
+    }
+}
+
+// Generate username preview
+$sppg_username_preview = sppg_username_from_name($nama_sppg);
+?>
+
 <main class="app-main">
         <!--begin::App Content Header-->
         <div class="app-content-header">
@@ -49,63 +101,14 @@
                   <!--end::Card Header-->
                   <!--begin::Card Body-->
                   <div class="card-body">
+                    <?php if (!empty($error_msg)): ?>
+                      <div class="alert alert-danger"><?= $error_msg ?></div>
+                    <?php endif; ?>
                     <!--begin::Row-->
                     <div class="row">
                       <!--begin::Col-->
                       <!--end::Col-->
                       <!--begin::Col-->
-                      <?php
-                       require_once "../lib/db_helper.php";
-                       require_once "../lib/validation.php";
-                       require_once "../lib/csrf.php";
-                       csrf_token();
-
-                       $nama_sppg = $alamat = $gmaps = $kota = $jam_buka = $jam_tutup = "";
-                       $sppg_password = "";
-                       if ($_POST['simpan'] && csrf_verify()) {
-                         $nama_sppg = v_string($_POST['nama_sppg'] ?? '', 255);
-                         $alamat = v_string($_POST['alamat'] ?? '', 500);
-                         $gmaps = v_string($_POST['gmaps'] ?? '', 500);
-                         $kota = v_string($_POST['kota'] ?? '', 100);
-                         $jam_buka = v_string($_POST['jam_buka'] ?? '', 10);
-                         $jam_tutup = v_string($_POST['jam_tutup'] ?? '', 10);
-                         $sppg_password = $_POST['sppg_password'] ?? '';
-
-                         $waktu = date("Y-m-d H:i:s");
-                         
-                         // Start transaction-like behavior
-                         $sppg_ok = db_exec(
-                             "INSERT INTO sppg (nama_sppg, alamat, gmaps, kota, waktu, jam_buka, jam_tutup) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                             "sssssss",
-                             $nama_sppg, $alamat, $gmaps, $kota, $waktu, $jam_buka, $jam_tutup
-                         );
-                         
-                         if ($sppg_ok) {
-                             $sppg_id = $db->insert_id;
-                             
-                             // Create SPPG login account - username auto-generated from nama_sppg
-                             $sppg_username = sppg_username_from_name($nama_sppg);
-                             $pass_hash = password_hash($sppg_password, PASSWORD_DEFAULT);
-                             $user_ok = db_exec(
-                                 "INSERT INTO users (username, password, level, sppg_id) VALUES (?, ?, 'sppg', ?)",
-                                 "ssi",
-                                 $sppg_username, $pass_hash, $sppg_id
-                             );
-                             if ($user_ok) {
-                                 echo "<div class='alert alert-success'>SPPG & Akun Login Berhasil Disimpan✅ <br>
-                                 Username: <strong>" . e($sppg_username) . "</strong> | Password: <strong>" . e($sppg_password) . "</strong><br>
-                                 <a href='./?p=sppg'>Lihat Data</a></div>";
-                             } else {
-                                 echo "<div class='alert alert-warning'>SPPG Berhasil Disimpan✅ tapi gagal buat akun login. <br>
-                                 <a href='./?p=sppg'>Lihat Data</a></div>";
-                             }
-                         } else {
-                             echo "<div class='alert alert-danger'>Gagal menyimpan SPPG</div>";
-                         }
-                       }
-                       // Generate username preview
-                       $sppg_username_preview = sppg_username_from_name($nama_sppg);
-                       ?>
 
                       <form action="#" method="post">
                         <?= csrf_field() ?>
