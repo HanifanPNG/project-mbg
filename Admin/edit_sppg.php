@@ -211,6 +211,18 @@
                               <div class="alert alert-info">
                                 <i class="bi bi-shield-lock"></i> <strong>Keamanan:</strong> Password disimpan terenkripsi (hash) dan tidak dapat dilihat. Gunakan tombol di bawah untuk generate password baru.
                               </div>
+                              <?php if (isset($new_generated_password)): ?>
+                                <div class="alert alert-success">
+                                  <strong>Password baru berhasil dibuat!</strong>
+                                  <div class="input-group mt-2">
+                                    <input type="text" class="form-control" value="<?= e($new_generated_password) ?>" readonly id="generatedPassword">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyPassword()">
+                                      <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                  </div>
+                                  <small class="text-muted">Simpan password ini dengan aman. Password ini tidak akan ditampilkan lagi.</small>
+                                </div>
+                              <?php endif; ?>
                               <hr>
                               <h6>Generate Password Baru</h6>
                               <form action="#" method="post">
